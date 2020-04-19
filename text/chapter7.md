@@ -12,10 +12,10 @@ The example code for this chapter will be a continuation of the address book exa
 
 The source code for this chapter is defined in the files `src/Data/AddressBook.purs` and `src/Data/AddressBook/Validation.purs`.
 
-The project has a number of Bower dependencies, many of which we have seen before. There are two new dependencies:
+The project has a number of dependencies, many of which we have seen before. There are two new dependencies:
 
-- `purescript-control`, which defines functions for abstracting control flow using type classes like `Applicative`.
-- `purescript-validation`, which defines a functor for _applicative validation_, the subject of this chapter.
+- `control`, which defines functions for abstracting control flow using type classes like `Applicative`.
+- `validation`, which defines a functor for _applicative validation_, the subject of this chapter.
 
 The `Data.AddressBook` module defines data types and `Show` instances for the types in our project, and the `Data.AddressBook.Validation` module contains validation rules for those types.
 
@@ -158,6 +158,23 @@ Nothing
 
 Try lifting some other functions of various numbers of arguments over `Maybe` in this way.
 
+Alternatively _applicative do notation_ can be used for the same purpose in a way that looks similar to the familiar _do notation_. Here is `lift3` using _applicative do notation_. Note `ado` is used instead of `do`, and `in` is used on the final line to denote the yielded value: 
+
+```haskell
+lift3 :: forall a b c d f
+       . Apply f
+      => (a -> b -> c -> d)
+      -> f a
+      -> f b
+      -> f c
+      -> f d
+lift3 f x y z = ado
+  a <- x
+  b <- y
+  c <- z
+  in f a b c
+```
+
 ## The Applicative Type Class
 
 There is a related type class called `Applicative`, defined as follows:
@@ -207,7 +224,7 @@ Here is a simple example function defined in PSCi, which joins three names to fo
 Freeman, Phillip A
 ```
 
-Now suppose that this function forms the implementation of a (very simple!) web service with the three arguments provided as query parameters. We want to make sure that the user provided each of the three parameters, so we might use the `Maybe` type to indicate the presence or otherwise of a parameter. We can lift `fullName` over `Maybe` to create an implementation of the web service which checks for missing parameters:
+Now suppose that this function forms the implementation of a (very simple!) web service with the three arguments provided as query parameters. We want to make sure that the user provided each of the three parameters, so we might use the `Maybe` type to indicate the presence or otherwise absence of a parameter. We can lift `fullName` over `Maybe` to create an implementation of the web service which checks for missing parameters:
 
 ```text
 > import Data.Maybe
@@ -219,6 +236,29 @@ Just ("Freeman, Phillip A")
 Nothing
 ```
 
+or with _applicative do_
+
+```text
+> import Data.Maybe
+
+> :paste… 
+… ado
+…   f <- Just "Phillip"
+…   m <- Just "A"
+…   l <- Just "Freeman"
+…   in fullName f m l
+… ^D
+(Just "Freeman, Phillip A")
+
+… ado
+…   f <- Just "Phillip"
+…   m <- Nothing
+…   l <- Just "Freeman"
+…   in fullName f m l
+… ^D
+Nothing
+```
+
 Note that the lifted function returns `Nothing` if any of the arguments was `Nothing`.
 
 This is good, because now we can send an error response back from our web service if the parameters are invalid. However, it would be better if we could indicate which field was incorrect in the response.
@@ -226,6 +266,7 @@ This is good, because now we can send an error response back from our web servic
 Instead of lifting over `Maybe`, we can lift over `Either String`, which allows us to return an error message. First, let's write an operator to convert optional inputs into computations which can signal an error using `Either String`:
 
 ```text
+> import Data.Either
 > :paste
 … withError Nothing  err = Left err
 … withError (Just a) _   = Right a
@@ -242,6 +283,18 @@ Now we can lift over `Either String`, providing an appropriate error message for
 …   fullName <$> (first  `withError` "First name was missing")
 …            <*> (middle `withError` "Middle name was missing")
 …            <*> (last   `withError` "Last name was missing")
+… ^D
+```
+
+or with _applicative do_
+
+```text
+> :paste
+… fullNameEither first middle last = ado 
+…  f <- first  `withError` "First name was missing"
+…  m <- middle `withError` "Middle name was missing"
+…  l <- last   `withError` "Last name was missing"
+…  in fullName f m l
 … ^D
 
 > :type fullNameEither
@@ -323,11 +376,11 @@ But the `combineList` function works for any `Applicative`! We can use it to com
 
 We will see the `combineList` function again later, when we consider `Traversable` functors.
 
-X> ## Exercises
-X>
-X> 1. (Easy) Use `lift2` to write lifted versions of the numeric operators `+`, `-`, `*` and `/` which work with optional arguments.
-X> 1. (Medium) Convince yourself that the definition of `lift3` given above in terms of `<$>` and `<*>` does type check.
-X> 1. (Difficult) Write a function `combineMaybe` which has type `forall a f. Applicative f => Maybe (f a) -> f (Maybe a)`. This function takes an optional computation with side-effects, and returns a side-effecting computation which has an optional result.
+ ## Exercises
+
+ 1. (Easy) Use `lift2` to write lifted versions of the numeric operators `+`, `-`, `*` and `/` which work with optional arguments.
+ 1. (Medium) Convince yourself that the definition of `lift3` given above in terms of `<$>` and `<*>` does type check.
+ 1. (Difficult) Write a function `combineMaybe` which has type `forall a f. Applicative f => Maybe (f a) -> f (Maybe a)`. This function takes an optional computation with side-effects, and returns a side-effecting computation which has an optional result.
 
 ## Applicative Validation
 
@@ -400,6 +453,16 @@ validatePerson (Person o) =
          <*> pure o.phones
 ```
 
+or with _applicative do_
+
+```haskell
+validatePersonAdo :: Person -> Either String Person
+validatePersonAdo (Person o) = ado
+  f <- nonEmpty o.firstName *> pure o.firstName
+  l <- nonEmpty o.lastName *> pure o.firstName
+  in person f l o.address o.phones
+```
+
 In the first two lines, we use the `nonEmpty` function to validate a non-empty string. `nonEmpty` returns an error (indicated with the `Left` constructor) if its input is empty, or a successful empty value (`unit`) using the `Right` constructor otherwise. We use the sequencing operator `*>` to indicate that we want to perform two validations, returning the result from the validator on the right. In this case, the validator on the right simply uses `pure` to return the input unchanged.
 
 The final lines do not perform any validation but simply provide the `address` and `phones` fields to the `person` function as the remaining arguments.
@@ -413,7 +476,7 @@ This function can be seen to work in PSCi, but has a limitation which we have se
 
 The `Either String` applicative functor only provides the first error encountered. Given the input here, we would prefer to see two errors - one for the missing first name, and a second for the missing last name.
 
-There is another applicative functor which is provided by the `purescript-validation` library. This functor is called `V`, and it provides the ability to return errors in any _semigroup_. For example, we can use `V (Array String)` to return an array of `String`s as errors, concatenating new errors onto the end of the array.
+There is another applicative functor which is provided by the `validation` library. This functor is called `V`, and it provides the ability to return errors in any _semigroup_. For example, we can use `V (Array String)` to return an array of `String`s as errors, concatenating new errors onto the end of the array.
 
 The `Data.AddressBook.Validation` module uses the `V (Array String)` applicative functor to validate the data structures in the `Data.AddressBook` module.
 
@@ -426,7 +489,7 @@ nonEmpty :: String -> String -> V Errors Unit
 nonEmpty field "" = invalid ["Field '" <> field <> "' cannot be empty"]
 nonEmpty _     _  = pure unit
 
-lengthIs :: String -> Number -> String -> V Errors Unit
+lengthIs :: String -> Int -> String -> V Errors Unit
 lengthIs field len value | S.length value /= len =
   invalid ["Field '" <> field <> "' must have length " <> show len]
 lengthIs _     _   _     =
@@ -437,6 +500,17 @@ validateAddress (Address o) =
   address <$> (nonEmpty "Street" o.street *> pure o.street)
           <*> (nonEmpty "City"   o.city   *> pure o.city)
           <*> (lengthIs "State" 2 o.state *> pure o.state)
+```
+
+or with _applicative do_
+
+```haskell
+validateAddressAdo :: Address -> V Errors Address
+validateAddressAdo (Address o) = ado
+  street  <- (nonEmpty "Street" o.street *> pure o.street)
+  city    <- (nonEmpty "City"   o.city   *> pure o.city)
+  state   <- (lengthIs "State" 2 o.state *> pure o.state)
+  in address street city state
 ```
 
 `validateAddress` validates an `Address` structure. It checks that the `street` and `city` fields are non-empty, and checks that the string in the `state` field has length 2.
@@ -486,6 +560,16 @@ validatePhoneNumber (PhoneNumber o) =
               <*> (matches "Number" phoneNumberRegex o.number *> pure o.number)
 ```
 
+or with _applicative do_
+
+```haskell
+validatePhoneNumberAdo :: PhoneNumber -> V Errors PhoneNumber
+validatePhoneNumberAdo (PhoneNumber o) = ado
+  tpe     <-  pure o."type"
+  number  <-  (matches "Number" phoneNumberRegex o.number *> pure o.number)
+  in phoneNumber tpe number
+```
+
 Again, try running this validator against some valid and invalid inputs in PSCi:
 
 ```text
@@ -496,10 +580,10 @@ Valid (PhoneNumber { type: HomePhone, number: "555-555-5555" })
 Invalid (["Field 'Number' did not match the required format"])
 ```
 
-X> ## Exercises
-X>
-X> 1. (Easy) Use a regular expression validator to ensure that the `state` field of the `Address` type contains two alphabetic characters. _Hint_: see the source code for `phoneNumberRegex`.
-X> 1. (Medium) Using the `matches` validator, write a validation function which checks that a string is not entirely whitespace. Use it to replace `nonEmpty` where appropriate.
+ ## Exercises
+
+ 1. (Easy) Use a regular expression validator to ensure that the `state` field of the `Address` type contains two alphabetic characters. _Hint_: see the source code for `phoneNumberRegex`.
+ 1. (Medium) Using the `matches` validator, write a validation function which checks that a string is not entirely whitespace. Use it to replace `nonEmpty` where appropriate.
 
 ## Traversable Functors
 
@@ -521,6 +605,21 @@ validatePerson (Person o) =
 	       <*> validateAddress o.address
          <*> (arrayNonEmpty "Phone Numbers" o.phones *>
               traverse validatePhoneNumber o.phones)
+```
+
+or with _applicative do_
+
+```haskell
+validatePersonAdo :: Person -> V Errors Person
+validatePersonAdo (Person o) = ado
+  firstName   <- (nonEmpty "First Name" o.firstName *> 
+                  pure o.firstName)
+  lastName    <- (nonEmpty "Last Name"  o.lastName  *> 
+                  pure o.lastName)
+  address     <- validateAddress o.address
+  numbers     <- (arrayNonEmpty "Phone Numbers" o.phones *> 
+                  traverse validatePhoneNumber o.phones)
+  in person firstName lastName address numbers
 ```
 
 There is one more interesting function here, which we haven't seen yet - `traverse`, which appears in the final line.
@@ -599,18 +698,18 @@ These examples show that traversing the `Nothing` value returns `Nothing` with n
 
 Other traversable functors include `Array`, and `Tuple a` and `Either a` for any type `a`. Generally, most "container" data type constructors have `Traversable` instances. As an example, the exercises will include writing a `Traversable` instance for a type of binary trees.
 
-X> ## Exercises
-X>
-X> 1. (Medium) Write a `Traversable` instance for the following binary tree data structure, which combines side-effects from left-to-right:
-X>
-X>     ```haskell
-X>     data Tree a = Leaf | Branch (Tree a) a (Tree a)
-X>     ```
-X>
-X>     This corresponds to an in-order traversal of the tree. What about a preorder traversal? What about reverse order?
-X>
-X> 1. (Medium) Modify the code to make the `address` field of the `Person` type optional using `Data.Maybe`. _Hint_: Use `traverse` to validate a field of type `Maybe a`.
-X> 1. (Difficult) Try to write `sequence` in terms of `traverse`. Can you write `traverse` in terms of `sequence`?
+ ## Exercises
+
+ 1. (Medium) Write a `Traversable` instance for the following binary tree data structure, which combines side-effects from left-to-right:
+
+     ```haskell
+     data Tree a = Leaf | Branch (Tree a) a (Tree a)
+     ```
+
+     This corresponds to an in-order traversal of the tree. What about a preorder traversal? What about reverse order?
+
+ 1. (Medium) Modify the code to make the `address` field of the `Person` type optional using `Data.Maybe`. _Hint_: Use `traverse` to validate a field of type `Maybe a`.
+ 1. (Difficult) Try to write `sequence` in terms of `traverse`. Can you write `traverse` in terms of `sequence`?
 
 ## Applicative Functors for Parallelism
 
@@ -620,7 +719,7 @@ However, in general, applicative functors are more general than this. The applic
 
 For example, the `V` validation functor returned an _array_ of errors, but it would work just as well if we picked the `Set` semigroup, in which case it would not matter what order we ran the various validators. We could even run them in parallel over the data structure!
 
-As a second example, the `purescript-parallel` package provides a type class `Parallel` which supports _parallel computations_. `Parallel` provides a function `parallel` which uses some `Applicative` functor to compute the result of its input computation _in parallel_:
+As a second example, the `parallel` package provides a type class `Parallel` which supports _parallel computations_. `Parallel` provides a function `parallel` which uses some `Applicative` functor to compute the result of its input computation _in parallel_:
 
 ```haskell
 f <$> parallel computation1

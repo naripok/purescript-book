@@ -4,7 +4,7 @@
 
 Functional programming techniques have been making appearances in JavaScript for some time now:
 
-- Libraries such as [UnderscoreJS](http://underscorejs.org) allow the developer to leverage tried-and-trusted functions such as `map`, `filter` and `reduce` to create larger programs from smaller programs by composition:
+- Libraries such as [UnderscoreJS](https://underscorejs.org) allow the developer to leverage tried-and-trusted functions such as `map`, `filter` and `reduce` to create larger programs from smaller programs by composition:
 
     ```javascript
     var sumOfPrimes =
@@ -30,7 +30,7 @@ Functional programming techniques have been making appearances in JavaScript for
     });
     ```
 
-- Libraries such as [React](http://facebook.github.io/react/) and [virtual-dom](https://github.com/Matt-Esch/virtual-dom) model views as pure functions of application state.
+- Libraries such as [React](https://reactjs.org) and [virtual-dom](https://github.com/Matt-Esch/virtual-dom) model views as pure functions of application state.
 
 Functions enable a simple form of abstraction which can yield great productivity gains. However, functional programming in JavaScript has its own disadvantages: JavaScript is verbose, untyped, and lacks powerful forms of abstraction. Unrestricted JavaScript code also makes equational reasoning very difficult.
 
@@ -83,7 +83,7 @@ The software requirements for this book are minimal: the first chapter will guid
 
 The PureScript compiler itself can be downloaded as a binary distribution, or built from source on any system running an up-to-date installation of the GHC Haskell compiler, and we will walk through this process in the next chapter.
 
-The code in this version of the book is compatible with versions `0.11.*` of
+The code in this version of the book is compatible with versions `0.13.*` of
 the PureScript compiler.
 
 ## About You
@@ -98,14 +98,14 @@ Readers who are familiar with the Haskell programming language will recognize a 
 
 The chapters in this book are largely self contained. A beginner with little functional programming experience would be well-advised, however, to work through the chapters in order. The first few chapters lay the groundwork required to understand the material later on in the book. A reader who is comfortable with the ideas of functional programming (especially one with experience in a strongly-typed language like ML or Haskell) will probably be able to gain a general understanding of the code in the later chapters of the book without reading the preceding chapters.
 
-Each chapter will focus on a single practical example, providing the motivation for any new ideas introduced. Code for each chapter are available from the book's [GitHub repository](https://github.com/paf31/purescript-book). Some chapters will include code snippets taken from the chapter's source code, but for a full understanding, you should read the source code from the repository alongside the material from the book. Longer sections will contain shorter snippets which you can execute in the interactive mode PSCi to test your understanding.
+Each chapter will focus on a single practical example, providing the motivation for any new ideas introduced. Code for each chapter are available from the book's [GitHub repository](https://github.com/purescript-contrib/purescript-book). Some chapters will include code snippets taken from the chapter's source code, but for a full understanding, you should read the source code from the repository alongside the material from the book. Longer sections will contain shorter snippets which you can execute in the interactive mode PSCi to test your understanding.
 
 Code samples will appear in a monospaced font, as follows:
 
 ```haskell
 module Example where
 
-import Control.Monad.Eff.Console (log)
+import Effect.Console (log)
 
 main = log "Hello, World!"
 ```
@@ -113,7 +113,7 @@ main = log "Hello, World!"
 Commands which should be typed at the command line will be preceded by a dollar symbol:
 
 ```text
-$ pulp build
+$ spago build
 ```
 
 Usually, these commands will be tailored to Linux/Mac OS users, so Windows users may need to make small changes such as modifying the file separator, or replacing shell built-ins with their Windows equivalents.
@@ -133,11 +133,12 @@ This book aims to provide an introduction to the PureScript language for beginne
 
 If you get stuck at any point, there are a number of resources available online for learning PureScript:
 
-- The PureScript IRC channel is a great place to chat about issues you may be having. Point your IRC client at irc.freenode.net, and connect to the #purescript channel.
-- The [PureScript website](http://purescript.org) contains links to several learning resources, including code samples, videos and other resources for beginners.
+- The `#purescript` and `#purescript-beginners` FP Slack channels are a great place to chat about issues you may be having. [Use this link](https://fpchat-invite.herokuapp.com/) to gain access the Slack chatrooms.
+- [PureScript: Jordan's Reference](https://github.com/jordanmartinez/purescript-jordans-reference)  is an alternative learning resource that goes into great depth. If a concept in this book is difficult to understand, consider reading the corresponding section in that reference.
+- [Pursuit](https://pursuit.purescript.org) is a searchable database of PureScript types and functions. Read Pursuit's help page to [learn what kinds of searches you can do](https://pursuit.purescript.org/help/users).
 - The [PureScript documentation repository](https://github.com/purescript/documentation) collects articles and examples on a wide variety of topics, written by PureScript developers and users.
-- [Try PureScript!](http://try.purescript.org) is a website which allows users to compile PureScript code in the web browser, and contains several simple examples of code.
-- [Pursuit](http://pursuit.purescript.org) is a searchable database of PureScript types and functions.
+- The [PureScript website](https://www.purescript.org) contains links to several learning resources, including code samples, videos and other resources for beginners.
+- **Note:** this resource is currently being updated to the latest `v0.13.x` PureScript release. We do not advise using it until it has been updated. [Try PureScript!](https://try.purescript.org) is a website which allows users to compile `v0.11.x` PureScript code in the web browser, and contains several simple examples of code.
 
 If you prefer to learn by reading examples, the `purescript`, `purescript-node` and `purescript-contrib` GitHub organizations contain plenty of examples of PureScript code.
 
@@ -149,11 +150,11 @@ Not long into my professional career, I began to appreciate functional programmi
 
 I started working on the PureScript compiler in response to my experience with JavaScript. I found myself using functional programming techniques that I had picked up in languages like Haskell, but wanted a more principled environment in which to apply them. Solutions at the time included various attempts to compile Haskell to JavaScript while preserving its semantics (Fay, Haste, GHCJS), but I was interested to see how successful I could be by approaching the problem from the other side - attempting to keep the semantics of JavaScript, while enjoying the syntax and type system of a language like Haskell.
 
-I maintain [a blog](http://blog.functorial.com), and can be [reached on Twitter](http://twitter.com/paf31).
+I maintain [a blog](https://blog.functorial.com), and can be [reached on Twitter](https://twitter.com/paf31).
 
 ## Acknowledgements
 
-I would like to thank the many contributors who helped PureScript to reach its current state. Without the huge collective effort which has been made on the compiler, tools, libraries, documentation and tests, the project would certainly have failed.  
+I would like to thank the many contributors who helped PureScript to reach its current state. Without the huge collective effort which has been made on the compiler, tools, libraries, documentation and tests, the project would certainly have failed.
 
 The PureScript logo which appears on the cover of this book was created by Gareth Hughes, and is gratefully reused here under the terms of the [Creative Commons Attribution 4.0 license](https://creativecommons.org/licenses/by/4.0/).
 

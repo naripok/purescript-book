@@ -6,7 +6,7 @@ This chapter will introduce two building blocks of PureScript programs: function
 
 We will build a simple address book application to manage a list of contacts. This code will introduce some new ideas from the syntax of PureScript.
 
-The front-end of our application will be the interactive mode PSCi, but it would be possible to build on this code to write a front-end in Javascript. In fact, we will do exactly that in later chapters, adding form validation and save/restore functionality.
+The front-end of our application will be the interactive mode PSCi, but it would be possible to build on this code to write a front-end in JavaScript. In fact, we will do exactly that in later chapters, adding form validation and save/restore functionality.
 
 ## Project Setup
 
@@ -25,17 +25,16 @@ import Data.Maybe (Maybe)
 Here, we import several modules:
 
 - The `Control.Plus` module, which defines the `empty` value.
-- The `Data.List` module, which is provided by the `purescript-lists` package which can be installed using Bower. It contains a few functions which we will need for working with linked lists.
+- The `Data.List` module, which is provided by the `lists` package which can be installed using Spago. It contains a few functions which we will need for working with linked lists.
 - The `Data.Maybe` module, which defines data types and functions for working with optional values.
 
 Notice that the imports for these modules are listed explicitly in parentheses. This is generally a good practice, as it helps to avoid conflicting imports.
 
-Assuming you have cloned the book's source code repository, the project for this chapter can be built using Pulp, with the following commands:
+Assuming you have cloned the book's source code repository, the project for this chapter can be built using Spago, with the following commands:
 
 ```text
 $ cd chapter3
-$ bower update
-$ pulp build
+$ spago build
 ```
 
 ## Simple Types
@@ -43,7 +42,7 @@ $ pulp build
 PureScript defines three built-in types which correspond to JavaScript's primitive types: numbers, strings and booleans. These are defined in the `Prim` module, which is implicitly imported by every module. They are called `Number`, `String`, and `Boolean`, respectively, and you can see them in PSCi by using the `:type` command to print the types of some simple values:
 
 ```text
-$ pulp repl
+$ spago repl
 
 > :type 1.0
 Number
@@ -81,7 +80,7 @@ Array Int
 Array Boolean
 
 > :type [1, false]
-Could not match type Int with Boolean.
+Could not match type Int with type Boolean.
 ```
 
 The error in the last example is an error from the type checker, which unsuccessfully attempted to _unify_ (i.e. make equal) the types of the two elements.
@@ -322,7 +321,7 @@ showAddress addr = addr.street <> ", " <>
                    addr.state
 ```
 
-A function definition begins with the name of the function, followed by a list of argument names. The result of the function is specified after the equals sign. Fields are accessed with a dot, followed by the field name. In PureScript, string concatenation uses the diamond operator (`<>`), instead of the plus operator like in Javascript.
+A function definition begins with the name of the function, followed by a list of argument names. The result of the function is specified after the equals sign. Fields are accessed with a dot, followed by the field name. In PureScript, string concatenation uses the diamond operator (`<>`), instead of the plus operator like in JavaScript.
 
 ## Test Early, Test Often
 
@@ -331,18 +330,18 @@ The PSCi interactive mode allows for rapid prototyping with immediate feedback, 
 First, build the code you've written:
 
 ```text
-$ pulp build
+$ spago build
 ```
 
 Next, load PSCi, and use the `import` command to import your new module:
 
 ```text
-$ pulp repl
+$ spago repl
 
 > import Data.AddressBook
 ```
 
-We can create an entry by using a record literal, which looks just like an anonymous object in JavaScript. Bind it to a name with a `let` expression:
+We can create an entry by using a record literal, which looks just like an anonymous object in JavaScript.
 
 ```text
 > address = { street: "123 Fake St.", city: "Faketown", state: "CA" }
@@ -387,7 +386,7 @@ We don't modify the existing `AddressBook` directly. Instead, we return a new `A
 To implement `insertEntry`, we can use the `Cons` function from `Data.List`. To see its type, open PSCi and use the `:type` command:
 
 ```text
-$ pulp repl
+$ spago repl
 
 > import Data.List
 > :type Cons
@@ -447,7 +446,7 @@ AddressBook
 Note though that the parentheses here are unnecessary - the following is equivalent:
 
 ```text
-> :type insertEntry example emptyBook
+> :type insertEntry entry emptyBook
 AddressBook
 ```
 
@@ -489,7 +488,7 @@ We can first filter the address book, keeping only those entries with the correc
 With this high-level specification of our approach, we can calculate the type of our function. First open PSCi, and find the types of the `filter` and `head` functions:
 
 ```text
-$ pulp repl
+$ spago repl
 
 > import Data.List
 > :type filter
@@ -505,7 +504,7 @@ Let's pick apart these two types to understand their meaning.
 
 `filter` is a curried function of two arguments. Its first argument is a function, which takes a list element and returns a `Boolean` value as a result. Its second argument is a list of elements, and the return value is another list.
 
-`head` takes a list as its argument, and returns a type we haven't seen before: `Maybe a`. `Maybe a` represents an optional value of type `a`, and provides a type-safe alternative to using `null` to indicate a missing value in languages like Javascript. We will see it again in more detail in later chapters.
+`head` takes a list as its argument, and returns a type we haven't seen before: `Maybe a`. `Maybe a` represents an optional value of type `a`, and provides a type-safe alternative to using `null` to indicate a missing value in languages like JavaScript. We will see it again in more detail in later chapters.
 
 The universally quantified types of `filter` and `head` can be _specialized_ by the PureScript compiler, to the following types:
 
@@ -609,73 +608,12 @@ Either way, this gives a clear definition of the `findEntry` function: "`findEnt
 
 I will let you make your own decision which definition is easier to understand, but it is often useful to think of functions as building blocks in this way - each function executing a single task, and solutions assembled using function composition.
 
-## Tests, Tests, Tests ...
+## Exercises
 
-Now that we have the core of a working application, let's try it out using PSCi.
-
-```text
-$ pulp repl
-
-> import Data.AddressBook
-```
-
-Let's first try looking up an entry in the empty address book (we obviously expect this to return an empty result):
-
-```text
-> findEntry "John" "Smith" emptyBook
-
-No type class instance was found for
-
-    Data.Show.Show { firstName :: String
-                   , lastName :: String
-                   , address :: { street :: String
-                                , city :: String
-                                , state :: String
-                                }
-                   }
-```
-
-An error! Not to worry, this error simply means that PSCi doesn't know how to print a value of type `Entry` as a String.
-
-The return type of `findEntry` is `Maybe Entry`, which we can convert to a `String` by hand.
-
-Our `showEntry` function expects an argument of type `Entry`, but we have a value of type `Maybe Entry`. Remember that this means that the function returns an optional value of type `Entry`. What we need to do is apply the `showEntry` function if the optional value is present, and propagate the missing value if not.
-
-Fortunately, the Prelude module provides a way to do this. The `map` operator can be used to lift a function over an appropriate type constructor like `Maybe` (we'll see more on this function, and others like it, later in the book, when we talk about functors):
-
-```text
-> import Prelude
-> map showEntry (findEntry "John" "Smith" emptyBook)
-
-Nothing
-```
-
-That's better - the return value `Nothing` indicates that the optional return value does not contain a value - just as we expected.
-
-For ease of use, we can create a function which prints an `Entry` as a String, so that we don't have to use `showEntry` every time:
-
-```text
-> printEntry firstName lastName book = map showEntry (findEntry firstName lastName book)
-```
-
-Now let's create a non-empty address book, and try again. We'll reuse our example entry from earlier:
-
-```text
-> book1 = insertEntry entry emptyBook
-
-> printEntry "John" "Smith" book1
-
-Just ("Smith, John: 123 Fake St., Faketown, CA")
-```
-
-This time, the result contained the correct value. Try defining an address book `book2` with two names by inserting another name into `book1`, and look up each entry by name.
-
-X> ## Exercises
-X>
-X> 1. (Easy) Test your understanding of the `findEntry` function by writing down the types of each of its major subexpressions. For example, the type of the `head` function as used is specialized to `AddressBook -> Maybe Entry`.
-X> 1. (Medium) Write a function which looks up an `Entry` given a street address, by reusing the existing code in `findEntry`. Test your function in PSCi.
-X> 1. (Medium) Write a function which tests whether a name appears in a `AddressBook`, returning a Boolean value. _Hint_: Use PSCi to find the type of the `Data.List.null` function, which test whether a list is empty or not.
-X> 1. (Difficult) Write a function `removeDuplicates` which removes duplicate address book entries with the same first and last names. _Hint_: Use PSCi to find the type of the `Data.List.nubBy` function, which removes duplicate elements from a list based on an equality predicate.
+ 1. (Easy) Test your understanding of the `findEntry` function by writing down the types of each of its major subexpressions. For example, the type of the `head` function as used is specialized to `AddressBook -> Maybe Entry`.
+ 1. (Medium) Write a function which looks up an `Entry` given a street address, by reusing the existing code in `findEntry`. Test your function in PSCi.
+ 1. (Medium) Write a function which tests whether a name appears in a `AddressBook`, returning a Boolean value. _Hint_: Use PSCi to find the type of the `Data.List.null` function, which test whether a list is empty or not.
+ 1. (Difficult) Write a function `removeDuplicates` which removes duplicate address book entries with the same first and last names. _Hint_: Use PSCi to find the type of the `Data.List.nubBy` function, which removes duplicate elements from a list based on an equality predicate.
 
 ## Conclusion
 

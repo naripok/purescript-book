@@ -2,17 +2,12 @@
 Welcome to a Spago project!
 You can edit this file as you like.
 -}
-{ name = "book-chapter6"
+{ name =
+    "my-project"
 , dependencies =
-  [ "console"
-  , "effect"
-  , "either"
-  , "functions"
-  , "psci-support"
-  , "strings"
-  , "tuples"
-  , "unordered-collections"
-  ]
-, packages = ./packages.dhall
-, sources = [ "src/**/*.purs", "test/**/*.purs" ]
+    [ "console", "effect", "either", "psci-support", "strings", "tuples" ]
+, packages =
+    ./packages.dhall
+, sources =
+    [ "src/**/*.purs", "test/**/*.purs" ]
 }

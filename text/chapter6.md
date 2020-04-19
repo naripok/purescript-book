@@ -10,17 +10,17 @@ We will also see a collection of standard type classes from PureScript's Prelude
 
 ## Project Setup
 
-The source code for this chapter is defined in the file `src/Data/Hashable.purs`. 
+The source code for this chapter is defined in the file `src/Data/Hashable.purs`.
 
-The project has the following Bower dependencies:
+The project has the following dependencies:
 
-- `purescript-maybe`, which defines the `Maybe` data type, which represents optional values.
-- `purescript-tuples`, which defines the `Tuple` data type, which represents pairs of values.
-- `purescript-either`, which defines the `Either` data type, which represents disjoint unions.
-- `purescript-strings`, which defines functions which operate on strings.
-- `purescript-functions`, which defines some helper functions for defining PureScript functions.
+- `maybe`, which defines the `Maybe` data type, which represents optional values.
+- `tuples`, which defines the `Tuple` data type, which represents pairs of values.
+- `either`, which defines the `Either` data type, which represents disjoint unions.
+- `strings`, which defines functions which operate on strings.
+- `functions`, which defines some helper functions for defining PureScript functions.
 
-The module `Data.Hashable` imports several modules provided by these Bower packages.
+The module `Data.Hashable` imports several modules provided by these packages.
 
 ## Show Me!
 
@@ -109,9 +109,9 @@ No type class instance was found for
   Data.Show.Show (Int -> Int)
 ```
 
-X> ## Exercises
-X>
-X> 1. (Easy) Use the `showShape` function from the previous chapter to define a `Show` instance for the `Shape` type.
+ ## Exercises
+
+ 1. (Easy) Use the `showShape` function from the previous chapter to define a `Show` instance for the `Shape` type.
 
 ## Common Type Classes
 
@@ -177,7 +177,7 @@ class EuclideanRing a <= Field a
 
 The `Field` type class is composed from several more general _superclasses_. This allows us to talk abstractly about types which support some but not all of the `Field` operations. For example, a type of natural numbers would be closed under addition and multiplication, but not necessarily under subtraction, so that type might have an instance of the `Semiring` class (which is a superclass of `Num`), but not an instance of `Ring` or `Field`.
 
-Superclasses will be explained later in this chapter, but the full numeric type class hierarchy is beyond the scope of this chapter. The interested reader is encouraged to read the documentation for the superclasses of `Field` in `purescript-prelude`.
+Superclasses will be explained later in this chapter, but the full numeric type class hierarchy is beyond the scope of this chapter. The interested reader is encouraged to read the documentation for the superclasses of `Field` in `prelude`.
 
 ### Semigroups and Monoids
 
@@ -188,11 +188,11 @@ class Semigroup a where
   append :: a -> a -> a
 ```
 
-Strings form a semigroup under regular string concatenation, and so do arrays. Several other standard instances are provided by the `purescript-monoid` package.
+Strings form a semigroup under regular string concatenation, and so do arrays. Several other standard instances are provided by the `prelude` package.
 
 The `<>` concatenation operator, which we have already seen, is provided as an alias for `append`.
 
-The `Monoid` type class (provided by the `purescript-monoid` package) extends the `Semigroup` type class with the concept of an empty value, called `mempty`:
+The `Monoid` type class (provided by the `prelude` package) extends the `Semigroup` type class with the concept of an empty value, called `mempty`:
 
 ```haskell
 class Semigroup m <= Monoid m where
@@ -204,6 +204,7 @@ Again, strings and arrays are simple examples of monoids.
 A `Monoid` type class instance for a type describes how to _accumulate_ a result with that type, by starting with an "empty" value, and combining new results. For example, we can write a function which concatenates an array of values in some monoid by using a fold. In PSCi:
 
 ```haskell
+> import Prelude
 > import Data.Monoid
 > import Data.Foldable
 
@@ -214,13 +215,13 @@ A `Monoid` type class instance for a type describes how to _accumulate_ a result
 [1,2,3,4,5,6]
 ```
 
-The `purescript-monoid` package provides many examples of monoids and semigroups, which we will use in the rest of the book.
+The `prelude` package provides many examples of monoids and semigroups, which we will use in the rest of the book.
 
 ### Foldable
 
 If the `Monoid` type class identifies those types which act as the result of a fold, then the `Foldable` type class identifies those type constructors which can be used as the source of a fold.
 
-The `Foldable` type class is provided in the `purescript-foldable-traversable` package, which also contains instances for some standard containers such as arrays and `Maybe`.
+The `Foldable` type class is provided in the `foldable-traversable` package, which also contains instances for some standard containers such as arrays and `Maybe`.
 
 The type signatures for the functions belonging to the `Foldable` class are a little more complicated than the ones we've seen so far:
 
@@ -246,7 +247,7 @@ Let's try out `foldMap` in PSCi:
 
 Here, we choose the monoid for strings, which concatenates strings together, and the `show` function which renders an `Int` as a `String`. Then, passing in an array of integers, we see that the results of `show`ing each integer have been concatenated into a single `String`.
 
-But arrays are not the only types which are foldable. `purescript-foldable-traversable` also defines `Foldable` instances for types like `Maybe` and `Tuple`, and other libraries like `purescript-lists` define `Foldable` instances for their own data types. `Foldable` captures the notion of an _ordered container_.
+But arrays are not the only types which are foldable. `foldable-traversable` also defines `Foldable` instances for types like `Maybe` and `Tuple`, and other libraries like `lists` define `Foldable` instances for their own data types. `Foldable` captures the notion of an _ordered container_.
 
 ### Functor, and Type Class Laws
 
@@ -289,20 +290,20 @@ Whatever "lifting" means in the general sense, it should be true that any reason
 
 Many standard type classes come with their own set of similar laws. The laws given to a type class give structure to the functions of that type class and allow us to study its instances in generality. The interested reader can research the laws ascribed to the standard type classes that we have seen already.
 
-X> ## Exercises
-X>
-X> 1. (Easy) The following newtype represents a complex number:
-X>
-X>     ```haskell
-X>     newtype Complex = Complex
-X>       { real :: Number
-X>       , imaginary :: Number
-X>       }
-X>     ```
-X>       
-X>     Define `Show` and `Eq` instances for `Complex`.
+ ## Exercises
 
-## Type Annotations
+ 1. (Easy) The following newtype represents a complex number:
+
+     ```haskell
+     newtype Complex = Complex
+       { real :: Number
+       , imaginary :: Number
+       }
+     ```
+       
+     Define `Show` and `Eq` instances for `Complex`.
+
+## Type Class Constraints
 
 Types of functions can be constrained by using type classes. Here is an example: suppose we want to write a function which tests if three values are equal, by using equality defined using an `Eq` type class instance.
 
@@ -348,7 +349,7 @@ Here, we might have annotated this function as `Int -> Int`, or `Number -> Numbe
 
 ## Overlapping Instances
 
-PureScript has another rule regarding type class instances, called the _overlapping instances rule_. Whenever a type class instance is required at a function call site, PureScript will use the information inferred by the type checker to choose the correct instance. At that time, there should be exactly one appropriate instance for that type. If there are multiple valid instances, the compiler will issue a warning.
+PureScript has another rule regarding type class instances, called the _overlapping instances rule_. Whenever a type class instance is required at a function call site, PureScript will use the information inferred by the type checker to choose the correct instance. At that time, there should be exactly one appropriate instance for that type. If there are multiple valid instances, the compiler will issue a error.
 
 To demonstrate this, we can try creating two conflicting type class instances for an example type. In the following code, we create two overlapping `Show` instances for the type `T`:
 
@@ -366,15 +367,15 @@ instance showT2 :: Show T where
   show _ = "Instance 2"
 ```
 
-This module will compile with no warnings. However, if we _use_ `show` at type `T` (requiring the compiler to to find a `Show` instance), the overlapping instances rule will be enforced, resulting in a warning:
+This module will not compile. The overlapping instances rule will be enforced, resulting in an error:
 
 ```text
-Overlapping instances found for Prelude.Show T
+Overlapping type class instances found for Data.Show.Show T
 ```
 
 The overlapping instances rule is enforced so that automatic selection of type class instances is a predictable process. If we allowed two type class instances for a type to exist, then either could be chosen depending on the order of module imports, and that could lead to unpredictable behavior of the program at runtime, which is undesirable.
 
-If it is truly the case that there are two valid type class instances for a type, satisfying the appropriate laws, then a common approach is to define newtypes which wrap the existing type. Since different newtypes are allowed to have different type class instances under the overlapping instances rule, there is no longer an issue. This approach is taken in PureScript's standard libraries, for example in `purescript-maybe`, where the `Maybe a` type has multiple valid instances for the `Monoid` type class.
+If it is truly the case that there are two valid type class instances for a type, satisfying the appropriate laws, then a common approach is to define newtypes which wrap the existing type. Since different newtypes are allowed to have different type class instances under the overlapping instances rule, there is no longer an issue. This approach is taken in PureScript's standard libraries, for example in `maybe`, where the `Maybe a` type has multiple valid instances for the `Monoid` type class.
 
 ## Instance Dependencies
 
@@ -395,41 +396,41 @@ instance showEither :: (Show a, Show b) => Show (Either a b) where
   ...
 ```
 
-These two type class instances are provided in the `purescript-prelude` library.
+These two type class instances are provided in the `prelude` library.
 
 When the program is compiled, the correct type class instance for `Show` is chosen based on the inferred type of the argument to `show`. The selected instance might depend on many such instance relationships, but this complexity is not exposed to the developer.
 
-X> ## Exercises
-X>
-X> 1. (Easy) The following declaration defines a type of non-empty arrays of elements of type `a`:
-X>
-X>     ```haskell
-X>     data NonEmpty a = NonEmpty a (Array a)
-X>     ```
-X>      
-X>     Write an `Eq` instance for the type `NonEmpty a` which reuses the instances for `Eq a` and `Eq (Array a)`.
-X> 1. (Medium) Write a `Semigroup` instance for `NonEmpty a` by reusing the `Semigroup` instance for `Array`.
-X> 1. (Medium) Write a `Functor` instance for `NonEmpty`.
-X> 1. (Medium) Given any type `a` with an instance of `Ord`, we can add a new "infinite" value which is greater than any other value:
-X>
-X>     ```haskell
-X>     data Extended a = Finite a | Infinite
-X>     ```
-X>         
-X>     Write an `Ord` instance for `Extended a` which reuses the `Ord` instance for `a`.
-X> 1. (Difficult) Write a `Foldable` instance for `NonEmpty`. _Hint_: reuse the `Foldable` instance for arrays.
-X> 1. (Difficult) Given an type constructor `f` which defines an ordered container (and so has a `Foldable` instance), we can create a new container type which includes an extra element at the front:
-X>
-X>     ```haskell
-X>     data OneMore f a = OneMore a (f a)
-X>     ```
-X>         
-X>     The container `OneMore f` is also has an ordering, where the new element comes before any element of `f`. Write a `Foldable` instance for `OneMore f`:
-X>   
-X>     ```haskell
-X>     instance foldableOneMore :: Foldable f => Foldable (OneMore f) where
-X>       ...
-X>     ```
+
+## Exercises
+ 1. (Easy) The following declaration defines a type of non-empty arrays of elements of type `a`:
+
+    ```haskell
+    data NonEmpty a = NonEmpty a (Array a)
+    ```
+
+    Write an `Eq` instance for the type `NonEmpty a` which reuses the instances for `Eq a` and `Eq (Array a)`.
+ 1. (Medium) Write a `Semigroup` instance for `NonEmpty a` by reusing the `Semigroup` instance for `Array`.
+ 1. (Medium) Write a `Functor` instance for `NonEmpty`.
+ 1. (Medium) Given any type `a` with an instance of `Ord`, we can add a new "infinite" value which is greater than any other value:
+
+     ```haskell
+     data Extended a = Finite a | Infinite
+     ```
+
+    Write an `Ord` instance for `Extended a` which reuses the `Ord` instance for `a`.
+ 1. (Difficult) Write a `Foldable` instance for `NonEmpty`. _Hint_: reuse the `Foldable` instance for arrays.
+ 1. (Difficult) Given a type constructor `f` which defines an ordered container (and so has a `Foldable` instance), we can create a new container type which includes an extra element at the front:
+
+     ```haskell
+     data OneMore f a = OneMore a (f a)
+     ```
+
+     The container `OneMore f` also has an ordering, where the new element comes before any element of `f`. Write a `Foldable` instance for `OneMore f`:
+
+     ```haskell
+     instance foldableOneMore :: Foldable f => Foldable (OneMore f) where
+     ...
+     ```
 
 ## Multi Parameter Type Classes
 
@@ -442,7 +443,7 @@ module Stream where
 
 import Data.Array as Array
 import Data.Maybe (Maybe)
-import Data.String as String
+import Data.String.CodeUnits as String
 
 class Stream stream element where
   uncons :: stream -> Maybe { head :: element, tail :: stream }
@@ -534,7 +535,7 @@ Functional dependencies can be quite useful when using multi-parameter type clas
 
 We can even define type classes with zero type arguments! These correspond to compile-time assertions about our functions, allowing us to track global properties of our code in the type system.
 
-An important example is the `Partial` class which we saw earlier when discussing partial functions. We've seen the partial functions `head` and `tail`, defined in `Data.Array.Partial` already:
+An important example is the `Partial` class which we saw earlier when discussing partial functions. Take for example the functions `head` and `tail` defined in `Data.Array.Partial` that allow us to get the head or tail of an array without wrapping them in a `Maybe`, so they can fail if the array is empty:
 
 ```haskell
 head :: forall a. Partial => Array a -> a
@@ -575,53 +576,53 @@ We say that one type class is a superclass of another if every instance of the s
 
 We've already seen some examples of superclass relationships: the `Eq` class is a superclass of `Ord`, and the `Semigroup` class is a superclass of `Monoid`. For every type class instance of the `Ord` class, there must be a corresponding `Eq` instance for the same type. This makes sense, since in many cases, when the `compare` function reports that two values are incomparable, we often want to use the `Eq` class to determine if they are in fact equal.
 
-In general, it makes sense to define a superclass relationship when the laws for the subclass mention the members of the superclass. For example, it is reasonable to assume, for any pair of `Ord` and `Eq` instances, that if two values are equal under the `Eq` instance, then the `compare` function should return `EQ`. In order words, `a == b` should be true exactly when `compare a b` evaluates to `EQ`. This relationship on the level of laws justifies the superclass relationship between `Eq` and `Ord`.
+In general, it makes sense to define a superclass relationship when the laws for the subclass mention the members of the superclass. For example, it is reasonable to assume, for any pair of `Ord` and `Eq` instances, that if two values are equal under the `Eq` instance, then the `compare` function should return `EQ`. In other words, `a == b` should be true exactly when `compare a b` evaluates to `EQ`. This relationship on the level of laws justifies the superclass relationship between `Eq` and `Ord`.
 
 Another reason to define a superclass relationship is in the case where there is a clear "is-a" relationship between the two classes. That is, every member of the subclass _is a_ member of the superclass as well.
 
-X> ## Exercises
-X>
-X> 1. (Medium) Define a partial function which finds the maximum of a non-empty array of integers. Your function should have type `Partial => Array Int -> Int`. Test out your function in PSCi using `unsafePartial`. _Hint_: Use the `maximum` function from `Data.Foldable`.
-X> 1. (Medium) The `Action` class is a multi-parameter type class which defines an action of one type on another:
-X>
-X>     ```haskell
-X>     class Monoid m <= Action m a where
-X>       act :: m -> a -> a
-X>     ```
-X>           
-X>     An _action_ is a function which describes how monoidal values can be used to modify a value of another type. There are two laws for the `Action` type class:
-X>
-X>     - `act mempty a = a`
-X>     - `act (m1 <> m2) a = act m1 (act m2 a)`
-X>
-X>     That is, the action respects the operations defined by the `Monoid` class.
-X>        
-X>     For example, the natural numbers form a monoid under multiplication:
-X>
-X>     ```haskell
-X>     newtype Multiply = Multiply Int
-X>
-X>     instance semigroupMultiply :: Semigroup Multiply where
-X>       append (Multiply n) (Multiply m) = Multiply (n * m)
-X>
-X>     instance monoidMultiply :: Monoid Multiply where
-X>       mempty = Multiply 1
-X>     ```
-X>
-X>     This monoid acts on strings by repeating an input string some number of times. Write an instance which implements this action:
-X>
-X>     ```haskell
-X>     instance repeatAction :: Action Multiply String
-X>     ```
-X>
-X>     Does this instance satisfy the laws listed above?
-X> 1. (Medium) Write an instance `Action m a => Action m (Array a)`, where the action on arrays is defined by acting on each array element independently.
-X> 1. (Difficult) Given the following newtype, write an instance for `Action m (Self m)`, where the monoid `m` acts on itself using `append`:
-X>
-X>     ```haskell
-X>     newtype Self m = Self m
-X>     ```
-X> 1. (Difficult) Should the arguments of the multi-parameter type class `Action` be related by some functional dependency? Why or why not?
+ ## Exercises
+
+ 1. (Medium) Define a partial function which finds the maximum of a non-empty array of integers. Your function should have type `Partial => Array Int -> Int`. Test out your function in PSCi using `unsafePartial`. _Hint_: Use the `maximum` function from `Data.Foldable`.
+ 1. (Medium) The `Action` class is a multi-parameter type class which defines an action of one type on another:
+
+     ```haskell
+     class Monoid m <= Action m a where
+       act :: m -> a -> a
+     ```
+           
+     An _action_ is a function which describes how monoidal values can be used to modify a value of another type. There are two laws for the `Action` type class:
+
+     - `act mempty a = a`
+     - `act (m1 <> m2) a = act m1 (act m2 a)`
+
+     That is, the action respects the operations defined by the `Monoid` class.
+        
+     For example, the natural numbers form a monoid under multiplication:
+
+     ```haskell
+     newtype Multiply = Multiply Int
+
+     instance semigroupMultiply :: Semigroup Multiply where
+       append (Multiply n) (Multiply m) = Multiply (n * m)
+
+     instance monoidMultiply :: Monoid Multiply where
+       mempty = Multiply 1
+     ```
+
+     This monoid acts on strings by repeating an input string some number of times. Write an instance which implements this action:
+
+     ```haskell
+     instance repeatAction :: Action Multiply String
+     ```
+
+     Does this instance satisfy the laws listed above?
+ 1. (Medium) Write an instance `Action m a => Action m (Array a)`, where the action on arrays is defined by acting on each array element independently.
+ 1. (Difficult) Given the following newtype, write an instance for `Action m (Self m)`, where the monoid `m` acts on itself using `append`:
+
+     ```haskell
+     newtype Self m = Self m
+     ```
+ 1. (Difficult) Should the arguments of the multi-parameter type class `Action` be related by some functional dependency? Why or why not?
 
 ## A Type Class for Hashes
 
@@ -638,6 +639,9 @@ The first property looks a lot like a law for a type class, whereas the second p
 
 ```haskell
 newtype HashCode = HashCode Int
+
+instance hashCodeEq :: Eq HashCode where
+    eq (HashCode a) (HashCode b) = a == b
 
 hashCode :: Int -> HashCode
 hashCode h = HashCode (h `mod` 65535)
@@ -710,21 +714,21 @@ What about some more interesting types? To prove the type class law for the `Arr
 
 The source code for this chapter includes several other examples of `Hashable` instances, such as instances for the `Maybe` and `Tuple` type.
 
-X> ## Exercises
-X>
-X> 1. (Easy) Use PSCi to test the hash functions for each of the defined instances.
-X> 1. (Medium) Use the `hashEqual` function to write a function which tests if an array has any duplicate elements, using hash-equality as an approximation to value equality. Remember to check for value equality using `==` if a duplicate pair is found. _Hint_: the `nubBy` function in `Data.Array` should make this task much simpler.
-X> 1. (Medium) Write a `Hashable` instance for the following newtype which satisfies the type class law:
-X>
-X>     ```haskell
-X>     newtype Hour = Hour Int
-X>     
-X>     instance eqHour :: Eq Hour where
-X>       eq (Hour n) (Hour m) = mod n 12 == mod m 12
-X>     ```
-X>     
-X>     The newtype `Hour` and its `Eq` instance represent the type of integers modulo 12, so that 1 and 13 are identified as equal, for example. Prove that the type class law holds for your instance.
-X> 1. (Difficult) Prove the type class laws for the `Hashable` instances for `Maybe`, `Either` and `Tuple`.
+ ## Exercises
+
+ 1. (Easy) Use PSCi to test the hash functions for each of the defined instances.
+ 1. (Medium) Use the `hashEqual` function to write a function which tests if an array has any duplicate elements, using hash-equality as an approximation to value equality. Remember to check for value equality using `==` if a duplicate pair is found. _Hint_: the `nubByEq` function in `Data.Array` should make this task much simpler.
+ 1. (Medium) Write a `Hashable` instance for the following newtype which satisfies the type class law:
+
+     ```haskell
+     newtype Hour = Hour Int
+     
+     instance eqHour :: Eq Hour where
+       eq (Hour n) (Hour m) = mod n 12 == mod m 12
+     ```
+     
+     The newtype `Hour` and its `Eq` instance represent the type of integers modulo 12, so that 1 and 13 are identified as equal, for example. Prove that the type class law holds for your instance.
+ 1. (Difficult) Prove the type class laws for the `Hashable` instances for `Maybe`, `Either` and `Tuple`.
 
 ## Conclusion
 

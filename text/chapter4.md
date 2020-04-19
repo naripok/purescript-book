@@ -16,13 +16,13 @@ The `Data.Path` module contains a model of a virtual filesystem. You do not need
 
 The `FileOperations` module contains functions which use the `Data.Path` API. Solutions to the exercises can be completed in this file.
 
-The project has the following Bower dependencies:
+The project has the following dependencies:
 
-- `purescript-maybe`, which defines the `Maybe` type constructor
-- `purescript-arrays`, which defines functions for working with arrays
-- `purescript-strings`, which defines functions for working with Javascript strings
-- `purescript-foldable-traversable`, which defines functions for folding arrays and other data structures
-- `purescript-console`, which defines functions for printing to the console
+- `maybe`, which defines the `Maybe` type constructor
+- `arrays`, which defines functions for working with arrays
+- `strings`, which defines functions for working with JavaScript strings
+- `foldable-traversable`, which defines functions for folding arrays and other data structures
+- `console`, which defines functions for printing to the console
 
 ## Introduction
 
@@ -62,25 +62,26 @@ Just as we branch based on whether the input is non-zero, in the array case, we 
 ```haskell
 import Prelude
 
-import Data.Array (null)
-import Data.Array.Partial (tail)
-import Partial.Unsafe (unsafePartial)
+import Data.Array (null, tail)
+import Data.Maybe (fromMaybe)
 
 length :: forall a. Array a -> Int
 length arr =
   if null arr
     then 0
-    else 1 + length (unsafePartial tail arr)
+    else 1 + (length $ fromMaybe [] $ tail arr)
 ```
 
 In this function, we use an `if .. then .. else` expression to branch based on the emptiness of the array. The `null` function returns `true` on an empty array. Empty arrays have length zero, and a non-empty array has a length that is one more than the length of its tail.
 
+The `tail` function returns a `Maybe` wrapping the given array without its first element. If the array is empty (i.e. it doesn't has a tail) `Nothing` is returned. The `fromMaybe` function takes a default value and a `Maybe` value. If the latter is `Nothing` it returns the default, in the other case it returns the value wrapped by `Just`.
+
 This example is obviously a very impractical way to find the length of an array in JavaScript, but should provide enough help to allow you to complete the following exercises:
 
-X> ## Exercises
-X>
-X> 1. (Easy) Write a recursive function which returns `true` if and only if its input is an even integer.
-X> 2. (Medium) Write a recursive function which counts the number of even integers in an array. _Hint_: the function `unsafePartial head` (where `head` is also imported from `Data.Array.Partial`) can be used to find the first element in a non-empty array.
+ ## Exercises
+
+ 1. (Easy) Write a recursive function which returns `true` if and only if its input is an even integer.
+ 2. (Medium) Write a recursive function which counts the number of even integers in an array. _Hint_: the function `head` (also available in `Data.Array`) can be used to find the first element in a non-empty array.
 
 ## Maps
 
@@ -91,7 +92,7 @@ When we cover _type classes_ later in the book we will see that the `map` functi
 Let's try out the `map` function in PSCi:
 
 ```text
-$ pulp repl
+$ spago repl
 
 > import Prelude
 > map (\n -> n + 1) [1, 2, 3, 4, 5]
@@ -188,11 +189,11 @@ For example, suppose we wanted to compute an array of all numbers between 1 and 
 [2,4,6,8,10]
 ```
 
-X> ## Exercises
-X>
-X> 1. (Easy) Use the `map` or `<$>` function to write a function which calculates the squares of an array of numbers.
-X> 1. (Easy) Use the `filter` function to write a function which removes the negative numbers from an array of numbers.
-X> 1. (Medium) Define an infix synonym `<$?>` for `filter`. Rewrite your answer to the previous question to use your new operator. Experiment with the precedence level and associativity of your operator in PSCi.
+ ## Exercises
+
+ 1. (Easy) Use the `map` or `<$>` function to write a function which calculates the squares of an array of numbers.
+ 1. (Easy) Use the `filter` function to write a function which removes the negative numbers from an array of numbers.
+ 1. (Medium) Define an infix synonym `<$?>` for `filter`. Rewrite your answer to the previous question to use your new operator. Experiment with the precedence level and associativity of your operator in PSCi.
 
 ## Flattening Arrays
 
@@ -287,7 +288,7 @@ Great! Now that we have all of the pairs of potential factors, we can use `filte
 [[1,10],[2,5]]
 ```
 
-This code uses the `product` function from the `Data.Foldable` module in the `purescript-foldable-traversable` library.
+This code uses the `product` function from the `Data.Foldable` module in the `foldable-traversable` library.
 
 Excellent! We've managed to find the correct set of factor pairs without duplicates.
 
@@ -310,7 +311,7 @@ factors n = filter (\xs -> product xs == n) $ do
 The keyword `do` introduces a block of code which uses do notation. The block consists of expressions of a few types:
 
 - Expressions which bind elements of an array to a name. These are indicated with the backwards-facing arrow `<-`, with a name on the left, and an expression on the right whose type is an array.
-- Expressions which do not bind elements of the array to names. The last line `pure [i, j]` is an example of this kind of expression.
+- Expressions which do not bind elements of the array to names. The `do` *result* is an example of this kind of expression and is illustrated in the last line, `pure [i, j]`.
 - Expressions which give names to expressions, using the `let` keyword.
 
 This new notation hopefully makes the structure of the algorithm clearer. If you mentally replace the arrow `<-` with the word "choose", you might read it as follows: "choose an element `i` between 1 and n, then choose an element `j` between `i` and `n`, and return `[i, j]`".
@@ -336,7 +337,7 @@ and the result would be the same.
 
 ## Guards
 
-One further change we can make to the `factors` function is to move the filter inside the array comprehension. This is possible using the `guard` function from the `Control.MonadZero` module (from the `purescript-control` package):
+One further change we can make to the `factors` function is to move the filter inside the array comprehension. This is possible using the `guard` function from the `Control.MonadZero` module (from the `control` package):
 
 ```haskell
 import Control.MonadZero (guard)
@@ -380,12 +381,12 @@ That is, if `guard` is passed an expression which evaluates to `true`, then it r
 
 This means that if the guard fails, then the current branch of the array comprehension will terminate early with no results. This means that a call to `guard` is equivalent to using `filter` on the intermediate array. Depending on the application, you might prefer to use `guard` instead of a `filter`. Try the two definitions of `factors` to verify that they give the same results.
 
-X> ## Exercises
-X>
-X> 1. (Easy) Use the `factors` function to define a function `isPrime` which tests if its integer argument is prime or not.
-X> 1. (Medium) Write a function which uses do notation to find the _cartesian product_ of two arrays, i.e. the set of all pairs of elements `a`, `b`, where `a` is an element of the first array, and `b` is an element of the second.
-X> 1. (Medium) A _Pythagorean triple_ is an array of numbers `[a, b, c]` such that `a² + b² = c²`. Use the `guard` function in an array comprehension to write a function `triples` which takes a number `n` and calculates all Pythagorean triples whose components are less than `n`. Your function should have type `Int -> Array (Array Int)`.
-X> 1. (Difficult) Write a function `factorizations` which produces all _factorizations_ of an integer `n`, i.e. arrays of integers whose product is `n`. _Hint_: for an integer greater than 1, break the problem down into two subproblems: finding the first factor, and finding the remaining factors.
+ ## Exercises
+
+ 1. (Easy) Use the `factors` function to define a function `isPrime` which tests if its integer argument is prime or not.
+ 1. (Medium) Write a function which uses do notation to find the _cartesian product_ of two arrays, i.e. the set of all pairs of elements `a`, `b`, where `a` is an element of the first array, and `b` is an element of the second.
+ 1. (Medium) A _Pythagorean triple_ is an array of numbers `[a, b, c]` such that `a² + b² = c²`. Use the `guard` function in an array comprehension to write a function `triples` which takes a number `n` and calculates all Pythagorean triples whose components are less than `n`. Your function should have type `Int -> Array (Array Int)`.
+ 1. (Difficult) Write a function `factorizations` which produces all _factorizations_ of an integer `n`, i.e. arrays of integers whose product is `n`. _Hint_: for an integer greater than 1, break the problem down into two subproblems: finding the first factor, and finding the remaining factors.
 
 ## Folds
 
@@ -474,7 +475,7 @@ This is a problem. If we are going to adopt recursion as a standard technique fr
 
 PureScript provides a partial solution to this problem in the form of _tail recursion optimization_.
 
-_Note_: more complete solutions to the problem can be implemented in libraries using so-called _trampolining_, but that is beyond the scope of this chapter. The interested reader can consult the documentation for the `purescript-free` and `purescript-tailrec` packages.
+_Note_: more complete solutions to the problem can be implemented in libraries using so-called _trampolining_, but that is beyond the scope of this chapter. The interested reader can consult the documentation for the `free` and `tailrec` packages.
 
 The key observation which enables tail recursion optimization is the following: a recursive call in _tail position_ to a function can be replaced with a _jump_, which does not allocate a stack frame. A call is in _tail position_ when it is the last call made before a function returns. This is the reason why we observed a stack overflow in the example - the recursive call to `f` was _not_ in tail position.
 
@@ -494,37 +495,40 @@ Notice that the recursive call to `fact` is the last thing that happens in this 
 
 One common way to turn a function which is not tail recursive into a tail recursive function is to use an _accumulator parameter_. An accumulator parameter is an additional parameter which is added to a function which _accumulates_ a return value, as opposed to using the return value to accumulate the result.
 
-For example, consider this array recursion which reverses the input array by appending elements at the head of the input array to the end of the result.
+For example, consider again the `length` function presented in the beginning of the chapter:
 
 ```haskell
-reverse :: forall a. Array a -> Array a
-reverse [] = []
-reverse xs = snoc (reverse (unsafePartial tail xs))
-                  (unsafePartial head xs)
+length :: forall a. Array a -> Int
+length arr =
+  if null arr
+    then 0
+    else 1 + (length $ fromMaybe [] $ tail arr)
 ```
 
 This implementation is not tail recursive, so the generated JavaScript will cause a stack overflow when executed on a large input array. However, we can make it tail recursive, by introducing a second function argument to accumulate the result instead:
 
 ```haskell
-reverse :: forall a. Array a -> Array a
-reverse = reverse' []
+lengthTailRec :: forall a. Array a -> Int
+lengthTailRec arr = length' arr 0
   where
-    reverse' acc [] = acc
-    reverse' acc xs = reverse' (unsafePartial head xs : acc)
-                               (unsafePartial tail xs)
+    length' :: Array a -> Int -> Int
+    length' arr' acc =
+      if null arr'
+        then acc
+        else length' (fromMaybe [] $ tail arr') (acc + 1)
 ```
 
-In this case, we delegate to the helper function `reverse'`, which performs the heavy lifting of reversing the array. Notice though that the function `reverse'` is tail recursive - its only recursive call is in the last case, and is in tail position. This means that the generated code will be a _while loop_, and will not blow the stack for large inputs.
+In this case, we delegate to the helper function `length'`, which is tail recursive - its only recursive call is in the last case, and is in tail position. This means that the generated code will be a _while loop_, and will not blow the stack for large inputs.
 
-To understand the second implementation of `reverse`, note that the helper function `reverse'` essentially uses the accumulator parameter to maintain an additional piece of state - the partially constructed result. The result starts out empty, and grows by one element for every element in the input array. However, because later elements are added at the front of the array, the result is the original array in reverse!
+To understand the implementation of `lengthTailRec`, note that the helper function `length'` essentially uses the accumulator parameter to maintain an additional piece of state - the partial result. It starts out at 0, and grows by adding 1 for every element in the input array.
 
-Note also that while we might think of the accumulator as "state", there is no direct mutation going on. The accumulator is an immutable array, and we simply use function arguments to thread the state through the computation.
+Note also that while we might think of the accumulator as "state", there is no direct mutation going on.
 
 ## Prefer Folds to Explicit Recursion
 
 If we can write our recursive functions using tail recursion, then we can benefit from tail recursion optimization, so it becomes tempting to try to write all of our functions in this form. However, it is often easy to forget that many functions can be written directly as a fold over an array or similar data structure. Writing algorithms directly in terms of combinators such as `map` and `fold` has the added advantage of code simplicity - these combinators are well-understood, and as such, communicate the _intent_ of the algorithm much better than explicit recursion.
 
-For example, the `reverse` example can be written as a fold in at least two ways. Here is a version which uses `foldr`:
+For example, we can reverse an array using `foldr`:
 
 ```text
 > import Data.Foldable
@@ -540,24 +544,12 @@ For example, the `reverse` example can be written as a fold in at least two ways
 
 Writing `reverse` in terms of `foldl` will be left as an exercise for the reader.
 
-X> ## Exercises
-X>
-X> 1. (Easy) Use `foldl` to test whether an array of boolean values are all true.
-X> 2. (Medium) Characterize those arrays `xs` for which the function `foldl (==) false xs` returns true.
-X> 3. (Medium) Rewrite the following function in tail recursive form using an accumulator parameter:
-X>
-X>     ```haskell
-X>     import Prelude
-X>     import Data.Array.Partial (head, tail)
-X>     
-X>     count :: forall a. (a -> Boolean) -> Array a -> Int
-X>     count _ [] = 0
-X>     count p xs = if p (unsafePartial head xs)
-X>                    then count p (unsafePartial tail xs) + 1
-X>                    else count p (unsafePartial tail xs)
-X>     ```
-X>
-X> 4. (Medium) Write `reverse` in terms of `foldl`.
+ ## Exercises
+
+ 1. (Easy) Use `foldl` to test whether an array of boolean values are all true.
+ 2. (Medium) Characterize those arrays `xs` for which the function `foldl (==) false xs` returns true.
+ 3. (Medium) Rewrite the `fib` function in tail recursive form using an accumulator parameter.
+ 4. (Medium) Write `reverse` in terms of `foldl`.
 
 ## A Virtual Filesystem
 
@@ -581,7 +573,7 @@ ls :: Path -> Array Path
 
 filename :: Path -> String
 
-size :: Path -> Maybe Number
+size :: Path -> Maybe Int
 
 isDirectory :: Path -> Boolean
 ```
@@ -589,7 +581,7 @@ isDirectory :: Path -> Boolean
 We can try out the API in PSCi:
 
 ```text
-$ pulp repl
+$ spago repl
 
 > import Data.Path
 
@@ -649,21 +641,21 @@ allFiles' file = file : do
 
 Try out the new version in PSCi - you should get the same result. I'll let you decide which version you find clearer.
 
-X> ## Exercises
-X>
-X> 1. (Easy) Write a function `onlyFiles` which returns all _files_ (not directories) in all subdirectories of a directory.
-X> 1. (Medium) Write a fold to determine the largest and smallest files in the filesystem.
-X> 1. (Difficult) Write a function `whereIs` to search for a file by name. The function should return a value of type `Maybe Path`, indicating the directory containing the file, if it exists. It should behave as follows:
-X>
-X>     ```text
-X>     > whereIs "/bin/ls"
-X>     Just (/bin/)
-X>     
-X>     > whereIs "/bin/cat"
-X>     Nothing
-X>     ```
-X>
-X>     _Hint_: Try to write this function as an array comprehension using do notation.
+ ## Exercises
+
+ 1. (Easy) Write a function `onlyFiles` which returns all _files_ (not directories) in all subdirectories of a directory.
+ 1. (Medium) Write a fold to determine the largest and smallest files in the filesystem.
+ 1. (Difficult) Write a function `whereIs` to search for a file by name. The function should return a value of type `Maybe Path`, indicating the directory containing the file, if it exists. It should behave as follows:
+
+     ```text
+     > whereIs "/bin/ls"
+     Just (/bin/)
+     
+     > whereIs "/bin/cat"
+     Nothing
+     ```
+
+     _Hint_: Try to write this function as an array comprehension using do notation.
 
 ## Conclusion
 

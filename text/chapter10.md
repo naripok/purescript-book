@@ -5,10 +5,10 @@
 This chapter will introduce PureScript's _foreign function interface_ (or _FFI_), which enables communication from PureScript code to JavaScript code, and vice versa. We will cover the following:
 
 - How to call pure JavaScript functions from PureScript,
-- How to create new effect types and actions for use with the `Eff` monad, based on existing JavaScript code,
+- How to create new effect types and actions for use with the `Effect` monad, based on existing JavaScript code,
 - How to call PureScript code from JavaScript,
 - How to understand the representation of PureScript values at runtime,
-- How to work with untyped data using the `purescript-foreign` package.
+- How to work with untyped data using the `foreign` package.
 
 Towards the end of this chapter, we will revisit our recurring address book example. The goal of the chapter will be to add the following new functionality to our application using the FFI:
 
@@ -19,10 +19,7 @@ Towards the end of this chapter, we will revisit our recurring address book exam
 
 The source code for this module is a continuation of the source code from chapters 3, 7 and 8. As such, the source tree includes the appropriate source files from those chapters.
 
-This chapter adds two new Bower dependencies:
-
-1. The `purescript-foreign` library, which provides a data type and functions for working with _untyped data_.
-1. The `purescript-foreign-generic` library, which adds support for _datatype generic programming_ to the `purescript-foreign` library.
+This chapter intruduces the `foreign-generic` library as a dependency. This library adds support for _datatype generic programming_ to the `foreign` library. The `foreign` library is a sub-dependency and provides a data type and functions for working with _untyped data_.
 
 _Note_: to avoid browser-specific issues with local storage when the webpage is served from a local file, it might be necessary to run this chapter's project over HTTP.
 
@@ -60,9 +57,9 @@ var Test = require('Test');
 Test.gcd(15)(20);
 ```
 
-Here, I am assuming that the code was compiled with `pulp build`, which compiles PureScript modules to CommonJS modules. For that reason, I was able to reference the `gcd` function on the `Test` object, after importing the `Test` module using `require`.
+Here, I am assuming that the code was compiled with `spago build`, which compiles PureScript modules to CommonJS modules. For that reason, I was able to reference the `gcd` function on the `Test` object, after importing the `Test` module using `require`.
 
-You might also like to bundle JavaScript code for the browser, using `pulp build -O --to file.js`. In that case, you would access the `Test` module from the global PureScript namespace, which defaults to `PS`:
+You might also like to bundle JavaScript code for the browser, using `spago bundle-app --to file.js`. In that case, you would access the `Test` module from the global PureScript namespace, which defaults to `PS`:
 
 ```javascript
 var Test = PS.Test;
@@ -71,15 +68,15 @@ Test.gcd(15)(20);
 
 ## Understanding Name Generation
 
-PureScript aims to preserve names during code generation as much as possible. In particular, most identifiers which are neither PureScript nor Javascript keywords can be expected to be preserved, at least for names of top-level declarations.
+PureScript aims to preserve names during code generation as much as possible. In particular, most identifiers which are neither PureScript nor JavaScript keywords can be expected to be preserved, at least for names of top-level declarations.
 
-If you decide to use a Javascript keyword as an identifier, the name will be escaped with a double dollar symbol. For example,
+If you decide to use a JavaScript keyword as an identifier, the name will be escaped with a double dollar symbol. For example,
 
 ```haskell
 null = []
 ```
 
-generates the following Javascript:
+generates the following JavaScript:
 
 ```javascript
 var $$null = [];
@@ -91,7 +88,7 @@ In addition, if you would like to use special characters in your identifier name
 example' = 100
 ```
 
-generates the following Javascript:
+generates the following JavaScript:
 
 ```javascript
 var example$prime = 100;
@@ -193,14 +190,14 @@ Consider this polymorphic type, for example:
 forall a. a -> a
 ```
 
-What sort of functions have this type? Well, there is certainly one function with this type - namely, the identity function `id`, defined in the `Prelude`:
+What sort of functions have this type? Well, there is certainly one function with this type - namely, the `identity` function, defined in the `Prelude`:
 
 ```haskell
 id :: forall a. a -> a
 id a = a
 ```
 
-In fact, the `id` function is the _only_ (total) function with this type! This certainly seems to be the case (try writing an expression with this type which is not observably equivalent to `id`), but how can we be sure? We can be sure by considering the runtime representation of the type.
+In fact, the `identity` function is the _only_ (total) function with this type! This certainly seems to be the case (try writing an expression with this type which is not observably equivalent to `identity`), but how can we be sure? We can be sure by considering the runtime representation of the type.
 
 What is the runtime representation of a quantified type `forall a. t`? Well, any expression with the runtime representation for this type must have the correct runtime representation for the type `t` for any choice of type `a`. In our example above, a function of type `forall a. a -> a` must have the correct runtime representation for the types `String -> String`, `Number -> Number`, `Array Boolean -> Array Boolean`, and so on. It must take strings to strings, numbers to numbers, etc.
 
@@ -218,7 +215,7 @@ function invalid(a) {
 
 Certainly, this function takes strings to strings, numbers to numbers, etc. but it does not meet the additional condition, since it inspects the (runtime) type of its argument, so this function would not be a valid inhabitant of the type `forall a. a -> a`.
 
-Without being able to inspect the runtime type of our function argument, our only option is to return the argument unchanged, and so `id` is indeed the only inhabitant of the type `forall a. a -> a`.
+Without being able to inspect the runtime type of our function argument, our only option is to return the argument unchanged, and so `identity` is indeed the only inhabitant of the type `forall a. a -> a`.
 
 A full discussion of _parametric polymorphism_ and _parametricity_ is beyond the scope of this book. Note however, that since PureScript's types are _erased_ at runtime, a polymorphic function in PureScript _cannot_ inspect the runtime representation of its arguments (without using the FFI), and so this representation of polymorphic data is appropriate.
 
@@ -245,29 +242,29 @@ var shout = function (dict) {
 
 Notice that `shout` is compiled to a (curried) function of two arguments, not one. The first argument `dict` is the type class dictionary for the `Show` constraint. `dict` contains the implementation of the `show` function for the type `a`.
 
-We can call this function from JavaScript by passing an explicit type class dictionary from the Prelude as the first parameter:
+We can call this function from JavaScript by passing an explicit type class dictionary from `Data.Show` as the first parameter:
 
 ```javascript
-shout(require('Prelude').showNumber)(42);
+shout(require('Data.Show').showNumber)(42);
 ```
 
-X> ## Exercises
-X>
-X> 1. (Easy) What are the runtime representations of these types?
-X>
-X>     ```haskell
-X>     forall a. a
-X>     forall a. a -> a -> a
-X>     forall a. Ord a => Array a -> Boolean
-X>     ```
-X>
-X>     What can you say about the expressions which have these types?
-X> 1. (Medium) Try using the functions defined in the `purescript-arrays` package, calling them from JavaScript, by compiling the library using `pulp build` and importing modules using the `require` function in NodeJS. _Hint_: you may need to configure the output path so that the generated CommonJS modules are available on the NodeJS module path.
+ ## Exercises
+
+ 1. (Easy) What are the runtime representations of these types?
+
+     ```haskell
+     forall a. a
+     forall a. a -> a -> a
+     forall a. Ord a => Array a -> Boolean
+     ```
+
+     What can you say about the expressions which have these types?
+ 1. (Medium) Try using the functions defined in the `arrays` package, calling them from JavaScript, by compiling the library using `spago build` and importing modules using the `require` function in NodeJS. _Hint_: you may need to configure the output path so that the generated CommonJS modules are available on the NodeJS module path.
 
 ## Using JavaScript Code From PureScript
 
 The simplest way to use JavaScript code from PureScript is to give a type to an existing JavaScript value using a _foreign import_ declaration. Foreign import
-declarations should have a corresponding Javascript declaration in a _foreign Javascript module_.
+declarations should have a corresponding JavaScript declaration in a _foreign JavaScript module_.
 
 For example, consider the `encodeURIComponent` function, which can be used from JavaScript to encode a component of a URI by escaping special characters:
 
@@ -288,7 +285,7 @@ module Data.URI where
 foreign import encodeURIComponent :: String -> String
 ```
 
-We also need to write a foreign Javascript module. If the module above is saved as `src/Data/URI.purs`, then the foreign Javascript module should be saved as
+We also need to write a foreign JavaScript module. If the module above is saved as `src/Data/URI.purs`, then the foreign JavaScript module should be saved as
 `src/Data/URI.js`:
 
 ```javascript
@@ -297,18 +294,18 @@ We also need to write a foreign Javascript module. If the module above is saved 
 exports.encodeURIComponent = encodeURIComponent;
 ```
 
-Pulp will find `.js` files in the `src` directory, and provide them to the compiler as foreign Javascript modules.
+Spago will find `.js` files in the `src` directory, and provide them to the compiler as foreign JavaScript modules.
 
-Javascript functions and values are exported from foreign Javascript modules by assigning them to the `exports` object just like a regular CommonJS module. The `purs` compiler treats this module like a regular CommonJS module, and simply adds it as a dependency to the compiled
-PureScript module. However, when bundling code for the browser with `psc-bundle` or `pulp build -O --to`, it is very important to follow the
+JavaScript functions and values are exported from foreign JavaScript modules by assigning them to the `exports` object just like a regular CommonJS module. The `purs` compiler treats this module like a regular CommonJS module, and simply adds it as a dependency to the compiled
+PureScript module. However, when bundling code for the browser with `psc-bundle` or `spago bundle-app --to`, it is very important to follow the
 pattern above, assigning exports to the `exports` object using a property assignment. This is because `psc-bundle` recognizes this format,
-allowing unused Javascript exports to be removed from bundled code.
+allowing unused JavaScript exports to be removed from bundled code.
 
 With these two pieces in place, we can now use the `encodeURIComponent` function from PureScript like any function written in PureScript.
 For example, if this declaration is saved as a module and loaded into PSCi, we can reproduce the calculation above:
 
 ```text
-$ pulp repl
+$ spago repl
 
 > import Data.URI
 > encodeURIComponent "Hello World"
@@ -319,10 +316,10 @@ This approach works well for simple JavaScript values, but is of limited use for
 
 ## Wrapping JavaScript Values
 
-We might want to wrap Javascript values and functions for a number of reasons:
+We might want to wrap JavaScript values and functions for a number of reasons:
 
 - A function takes multiple arguments, but we want to call it like a curried function.
-- We might want to use the `Eff` monad to keep track of any JavaScript side-effects.
+- We might want to use the `Effect` monad to keep track of any JavaScript side-effects.
 - It might be necessary to handle corner cases like `null` or `undefined`, to give a function the correct runtime representation.
 
 For example, suppose we wanted to recreate the `head` function on arrays by using a foreign declaration. In JavaScript, we might write the function as follows:
@@ -341,7 +338,7 @@ To keep things simple, we can throw an exception in the case of an empty array. 
 foreign import unsafeHead :: forall a. Array a -> a
 ```
 
-In our foreign Javascript module, we can define `unsafeHead` as follows:
+In our foreign JavaScript module, we can define `unsafeHead` as follows:
 
 ```javascript
 exports.unsafeHead = function(arr) {
@@ -391,7 +388,7 @@ The most basic function we need will tell us whether a value is defined or not:
 foreign import isUndefined :: forall a. Undefined a -> Boolean
 ```
 
-This is easily defined in our foreign Javascript module as follows:
+This is easily defined in our foreign JavaScript module as follows:
 
 ```javascript
 exports.isUndefined = function(value) {
@@ -420,67 +417,77 @@ foreign import data Fn2 :: Type -> Type -> Type -> Type
 
 This defines the type constructor `Fn2` which takes three type arguments. `Fn2 a b c` is a type representing JavaScript functions of two arguments of types `a` and `b`, and with return type `c`.
 
-The `purescript-functions` package defines similar type constructors for function arities from 0 to 10.
+The `functions` package defines similar type constructors for function arities from 0 to 10.
 
 We can create a function of two arguments by using the `mkFn2` function, as follows:
 
 ```haskell
 import Data.Function.Uncurried
 
-divides :: Fn2 Int Int Boolean
-divides = mkFn2 \n m -> m % n == 0
+uncurriedAdd :: Fn2 Int Int Int
+uncurriedAdd = mkFn2 \n m -> m + n
 ```
 
 and we can apply a function of two arguments by using the `runFn2` function:
 
 ```haskell
-> runFn2 divides 2 10
-true
-
-> runFn2 divides 3 10
-false
+> runFn2 uncurriedAdd 3 10
+13
 ```
 
 The key here is that the compiler _inlines_ the `mkFn2` and `runFn2` functions whenever they are fully applied. The result is that the generated code is very compact:
 
 ```javascript
-exports.divides = function(n, m) {
-    return m % n === 0;
+var uncurriedAdd = function (n, m) {
+    return m + n | 0;
+};
+```
+
+For contrast, here is a traditional curried function:
+
+```haskell
+curriedAdd :: Int -> Int -> Int
+curriedAdd n m = m + n
+```
+
+and the resulting generated code, which is less compact due to the nested functions:
+
+```javascript
+var curriedAdd = function (n) {
+    return function (m) {
+        return m + n | 0;
+    };
 };
 ```
 
 ## Representing Side Effects
 
-The `Eff` monad is also defined as a foreign type in the Prelude. Its runtime representation is quite simple - an expression of type `Eff eff a` should evaluate to a JavaScript function of no arguments, which performs any side-effects and returns a value with the correct runtime representation for type `a`.
+The `Effect` monad is also defined as a foreign type. Its runtime representation is quite simple - an expression of type `Effect a` should evaluate to a JavaScript function of no arguments, which performs any side-effects and returns a value with the correct runtime representation for type `a`.
 
-The definition of the `Eff` type constructor is given in the `Control.Monad.Eff` module as follows:
+The definition of the `Effect` type constructor is given in the `Effect` module as follows:
 
 ```haskell
-foreign import data Eff :: # Effect -> Type -> Type
+foreign import data Effect :: Type -> Type
 ```
 
-Recall that the `Eff` type constructor is parameterized by a row of effects and a return type, which is reflected in its kind.
-
-As a simple example, consider the `random` function defined in the `purescript-random` package. Recall that its type was:
+As a simple example, consider the `random` function defined in the `random` package. Recall that its type was:
 
 ```haskell
-foreign import random :: forall eff. Eff (random :: RANDOM | eff) Number
+foreign import random :: Effect Number
 ```
 
 The definition of the `random` function is given here:
 
 ```javascript
-exports.random = function() {
-  return Math.random();
-};
+exports.random = Math.random;
 ```
 
 Notice that the `random` function is represented at runtime as a function of no arguments. It performs the side effect of generating a random number, and returns it, and the return value matches the runtime representation of the `Number` type: it is a non-null JavaScript number.
 
-As a slightly more interesting example, consider the `log` function defined by the `Control.Monad.Eff.Console` module in the `purescript-console` package. The `log` function has the following type:
+As a slightly more interesting example, consider the `log` function defined by the `Effect.Console` module in the `console` package. The `log` function has the following type:
 
 ```haskell
-foreign import log :: forall eff. String -> Eff (console :: CONSOLE | eff) Unit
+foreign import log :: String -> Effect Unit
 ```
 
 And here is its definition:
@@ -495,41 +502,25 @@ exports.log = function (s) {
 
 The representation of `log` at runtime is a JavaScript function of a single argument, returning a function of no arguments. The inner function performs the side-effect of writing a message to the console.
 
-The effects `RANDOM` and `CONSOLE` are also defined as foreign types. Their kinds are defined to be `Effect`, the kind of effects. For example:
-
-```haskell
-foreign import data RANDOM :: Effect
-```
-
-In fact, it is possible to define new effects in this way, as we will soon see.
-
-Expressions of type `Eff eff a` can be invoked from JavaScript like regular JavaScript methods. For example, since the `main` function is required to have type `Eff eff a` for some set of effects `eff` and some type `a`, it can be invoked as follows:
+Expressions of type `Effect a` can be invoked from JavaScript like regular JavaScript methods. For example, since the `main` function is required to have type `Effect a` for some type `a`, it can be invoked as follows:
 
 ```javascript
 require('Main').main();
 ```
 
-When using `pulp build -O --to` or `pulp run`, this call to `main` is generated automatically, whenever the `Main` module is defined.
+When using `spago bundle-app --to` or `spago run`, this call to `main` is generated automatically, whenever the `Main` module is defined.
 
 ## Defining New Effects
 
-The source code for this chapter defines two new effects. The simplest is the `ALERT` effect, defined in the `Control.Monad.Eff.Alert` module. It is used to indicate that a computation might alert the user using a popup window.
+The source code for this chapter defines two new effects. The simplest is `alert`, defined in the `Effect.Alert` module. It is used to indicate that a computation might alert the user using a popup window.
 
-The effect is defined first, using a foreign type declaration:
-
-```haskell
-foreign import data ALERT :: Effect
-```
-
-`ALERT` is given the kind `Effect`, indicating that it represents an effect, as opposed to a type.
-
-Next, the `alert` action is defined. The `alert` action displays a popup, and adds the `ALERT` effect to the row of effects:
+The effect is defined using a foreign type declaration:
 
 ```haskell
-foreign import alert :: forall eff. String -> Eff (alert :: ALERT | eff) Unit
+foreign import alert :: String -> Effect Unit
 ```
 
-The foreign Javascript module is straightforward, defining the `alert` function by assigning it to the `exports` variable:
+The foreign JavaScript module is straightforward, defining the `alert` function by assigning it to the `exports` variable:
 
 ```javascript
 "use strict";
@@ -542,51 +533,38 @@ exports.alert = function(msg) {
 
 ```
 
-The `alert` action is very similar to the `log` action from the `Control.Monad.Eff.Console` module. The only difference is that the `alert` action uses the `window.alert` method, whereas the `log` action uses the `console.log` method. As such, `alert` can only be used in environments where `window.alert` is defined, such as a web browser.
+The `alert` action is very similar to the `log` action from the `Effect.Console` module. The only difference is that the `alert` action uses the `window.alert` method, whereas the `log` action uses the `console.log` method. As such, `alert` can only be used in environments where `window.alert` is defined, such as a web browser.
 
-Note that, as in the case of `log`, the `alert` function uses a function of no arguments to represent the computation of type `Eff (alert :: ALERT | eff) Unit`.
+Note that, as in the case of `log`, the `alert` function uses a function of no arguments to represent the computation of type `Effect Unit`.
 
-The second effect defined in this chapter is the `STORAGE` effect, which is defined in the `Control.Monad.Eff.Storage` module. It is used to indicate that a computation might read or write values using the Web Storage API.
+The second effect defined in this chapter is the `Storage` effect, which is defined in the `Effect.Storage` module. It is used to indicate that a computation might read or write values using the Web Storage API.
 
-The effect is defined in the same way:
-
-```haskell
-foreign import data STORAGE :: Effect
-```
-
-The `Control.Monad.Eff.Storage` module defines two actions: `getItem`, which retrieves a value from local storage, and `setItem` which inserts or updates a value in local storage. The two functions have the following types:
+The `Effect.Storage` module defines two actions: `getItem`, which retrieves a value from local storage, and `setItem` which inserts or updates a value in local storage. The two functions have the following types:
 
 ```haskell
-foreign import getItem
-  :: forall eff
-   . String
-  -> Eff (storage :: STORAGE | eff) Foreign
+foreign import getItem :: String -> Effect Foreign
 
-foreign import setItem
-  :: forall eff
-   . String
-  -> String
-  -> Eff (storage :: STORAGE | eff) Unit
+foreign import setItem :: String -> String -> Effect Unit
 ```
 
 The interested reader can inspect the source code for this module to see the definitions of these actions.
 
 `setItem` takes a key and a value (both strings), and returns a computation which stores the value in local storage at the specified key.
 
-The type of `getItem` is more interesting. It takes a key, and attempts to retrieve the associated value from local storage. However, since the `getItem` method on `window.localStorage` can return `null`, the return type is not `String`, but `Foreign` which is defined by the `purescript-foreign` package in the `Data.Foreign` module.
+The type of `getItem` is more interesting. It takes a key, and attempts to retrieve the associated value from local storage. However, since the `getItem` method on `window.localStorage` can return `null`, the return type is not `String`, but `Foreign` which is defined by the `foreign` package in the `Foreign` module.
 
-`Data.Foreign` provides a way to work with _untyped data_, or more generally, data whose runtime representation is uncertain.
+`Foreign` provides a way to work with _untyped data_, or more generally, data whose runtime representation is uncertain.
 
-X> ## Exercises
-X>
-X> 1. (Medium) Write a wrapper for the `confirm` method on the JavaScript `Window` object, and add your foreign function to the `Control.Monad.Eff.Alert` module.
-X> 1. (Medium) Write a wrapper for the `removeItem` method on the `localStorage` object, and add your foreign function to the `Control.Monad.Eff.Storage` module.
+ ## Exercises
+
+ 1. (Medium) Write a wrapper for the `confirm` method on the JavaScript `Window` object, and add your foreign function to the `Effect.Alert` module.
+ 1. (Medium) Write a wrapper for the `removeItem` method on the `localStorage` object, and add your foreign function to the `Effect.Storage` module.
 
 ## Working With Untyped Data
 
-In this section, we will see how we can use the `Data.Foreign` library to turn untyped data into typed data, with the correct runtime representation for its type.
+In this section, we will see how we can use the `Foreign` library to turn untyped data into typed data, with the correct runtime representation for its type.
 
-The code for this chapter builds on the address book example from chapter 8, by adding a Save button at the bottom of the form. When the Save button is clicked, the state of the form is serialized to JSON and stored in local storage. When the page is reloaded, the JSON document is retrieved from local storage and parsed.
+The code for this chapter demonstrates how a record can be serialized to JSON and stored in / retrieved from local storage.
 
 The `Main` module defines a type for the saved form data:
 
@@ -594,45 +572,40 @@ The `Main` module defines a type for the saved form data:
 newtype FormData = FormData
   { firstName  :: String
   , lastName   :: String
-  , street     :: String
-  , city       :: String
-  , state      :: String
-  , homePhone  :: String
-  , cellPhone  :: String
   }
 ```
 
-The problem is that we have no guarantee that the JSON will have the correct form. Put another way, we don't know that the JSON represents the correct type of data at runtime. This is the sort of problem that is solved by the `purescript-foreign` library. Here are some other examples:
+The problem is that we have no guarantee that the JSON will have the correct form. Put another way, we don't know that the JSON represents the correct type of data at runtime. This is the sort of problem that is solved by the `foreign` library. Here are some other examples:
 
 - A JSON response from a web service
 - A value passed to a function from JavaScript code
 
-Let's try the `purescript-foreign` and `purescript-foreign-generic` libraries in PSCi.
+Let's try the `foreign` and `foreign-generic` libraries in PSCi.
 
 Start by importing some modules:
 
 ```text
-> import Data.Foreign
-> import Data.Foreign.Generic
-> import Data.Foreign.JSON
+> import Foreign
+> import Foreign.Generic
+> import Foreign.JSON
 ```
 
-A good way to obtain a `Foreign` value is to parse a JSON document. `purescript-foreign-generic` defines the following two functions:
+A good way to obtain a `Foreign` value is to parse a JSON document. `foreign-generic` defines the following two functions:
 
 ```haskell
 parseJSON :: String -> F Foreign
 decodeJSON :: forall a. Decode a => String -> F a
 ```
 
-The type constructor `F` is actually just a type synonym, defined in `Data.Foreign`:
+The type constructor `F` is actually just a type synonym, defined in `Foreign`:
 
 ```haskell
-type F = Except (NonEmptyList ForeignError)
+type F = Except MultipleErrors
 ```
 
-Here, `Except` is an monad for handling exceptions in pure code, much like `Either`. We can convert a value in the `F` monad into a value in the `Either` monad by using the `runExcept` function.
+Here, `Except` is a monad for handling exceptions in pure code, much like `Either`. We can convert a value in the `F` monad into a value in the `Either` monad by using the `runExcept` function.
 
-Most of the functions in the `purescript-foreign` and `purescript-foreign-generic` libraries return a value in the `F` monad, which means that we can use do notation and the applicative functor combinators to build typed values.
+Most of the functions in the `foreign` and `foreign-generic` libraries return a value in the `F` monad, which means that we can use do notation and the applicative functor combinators to build typed values.
 
 The `Decode` type class represents those types which can be obtained from untyped data. There are type class instances defined for the primitive types and arrays, and we can define our own instances as well.
 
@@ -658,51 +631,45 @@ Recall that in the `Either` monad, the `Right` data constructor indicates succes
 (Left (NonEmptyList (NonEmpty (ErrorAtIndex 2 (TypeMismatch "Int" "Boolean")) Nil)))
 ```
 
-The `purescript-foreign-generic` library tells us where in the JSON document the type error occurred.
+The `foreign-generic` library tells us where in the JSON document the type error occurred.
 
 ## Handling Null and Undefined Values
 
-Real-world JSON documents contain null and undefined values, so we need to be able to handle those too.
-
-`purescript-foreign-generic` defines a type constructors which solves this problem: `NullOrUndefined`. It serves a similar purpose to the `Undefined` type constructor that we defined earlier, but uses the `Maybe` type constructor internally to represent missing values.
-
-The module also provides a function `unNullOrUndefined` to unwrap the inner value. We can lift the appropriate function over the `decodeJSON` action to parse JSON documents which permit null values:
+Real-world JSON documents contain null and undefined values, so we need to be able to handle those too. `foreign-generic` solves this problem with the 'Maybe' type constructor to represent missing values.
 
 ```text
 > import Prelude
-> import Data.Foreign.NullOrUndefined
+> import Foreign.NullOrUndefined
 
-> runExcept (unNullOrUndefined <$> decodeJSON "42" :: F (NullOrUndefined Int))
+> runExcept (decodeJSON "42" :: F (Maybe Int))
 (Right (Just 42))
 
-> runExcept (unNullOrUndefined <$> decodeJSON "null" :: F (NullOrUndefined Int))
+> runExcept (decodeJSON "null" :: F (Maybe Int))
 (Right Nothing)
 ```
 
-In each case, the type annotation applies to the term to the right of the `<$>` operator. For example, `decodeJSON "42"` has the type `F (NullOrUndefined Int)`. The `unNullOrUndefined` function is then lifted over `F` to give the final type `F (Maybe Int)`.
-
-The type `NullOrUndefined Int` represents values which are either integers, or null. What if we wanted to parse more interesting values, like arrays of integers, where each element might be `null`? In that case, we could lift the function `map unNullOrUndefined` over the `decodeJSON` action, as follows:
+The type `Maybe Int` represents values which are either integers, or null. What if we wanted to parse more interesting values, like arrays of integers, where each element might be `null`? `decodeJSON` handles such cases as well:
 
 ```text
-> runExcept (map unNullOrUndefined <$> decodeJSON "[1, 2, null]" :: F (Array (NullOrUndefined Int)))
+> runExcept (decodeJSON "[1,2,null]" :: F (Array (Maybe Int)))
 (Right [(Just 1),(Just 2),Nothing])
 ```
 
-In general, using newtypes to wrap an existing type is a good way to provide different serialization strategies for the same type. The `NullOrUndefined` type is defined as a newtype around the `Maybe` type constructor.
-
 ## Generic JSON Serialization
 
-In fact, we rarely need to write instances for the `Decode` class, since the `purescript-foreign-generic` class allows us to _derive_ instances using a technique called _datatype-generic programming_. A full explanation of this technique is beyond the scope of this book, but it allows us to write functions once, and reuse them over many different data types, based on the structure of a the types themselves.
+In fact, we rarely need to write instances for the `Decode` class, since the `foreign-generic` class allows us to _derive_ instances using a technique called _datatype-generic programming_. A full explanation of this technique is beyond the scope of this book, but it allows us to write functions once, and reuse them over many different data types, based on the structure of a the types themselves.
 
 To derive a `Decode` instance for our `FormData` type (so that we may deserialize it from its JSON representation), we first use the `derive` keyword to derive an instance of the `Generic` type class, which looks like this:
 
 ```haskell
+import Data.Generic.Rep
 derive instance genericFormData :: Generic FormData _
 ```
 
 Next, we simply define the `decode` function using the `genericDecode` function, as follows:
 
 ```haskell
+import Foreign.Class
 instance decodeFormData :: Decode FormData where
   decode = genericDecode (defaultOptions { unwrapSingleConstructors = true })
 ```
@@ -714,9 +681,16 @@ instance encodeFormData :: Encode FormData where
   encode = genericEncode (defaultOptions { unwrapSingleConstructors = true })
 ```
 
+And even an instance of Show which comes in handy for logging the result:
+
+```haskell
+instance showFormData :: Show FormData where
+  show = genericShow
+```
+
 It is important that we use the same options in the decoder and encoder, otherwise our encoded JSON documents might not get decoded correctly.
 
-Now, when the Save button is clicked, a value of type `FormData` is passed to the `encode` function, serializing it as a JSON document. The `FormData` type is a newtype for a record, so a value of type `FormData` passed to `encode` will be serialized as a JSON _object_. This is because we used the `unwrapSingleConstructors` option when defining our JSON encoder.
+Now, in our main function, a value of type `FormData` is passed to the `encode` function, serializing it as a JSON document. The `FormData` type is a newtype for a record, so a value of type `FormData` passed to `encode` will be serialized as a JSON _object_. This is because we used the `unwrapSingleConstructors` option when defining our JSON encoder.
 
 Our `Decode` type class instance is used with `decodeJSON` to parse the JSON document when it is retrieved from local storage, as follows:
 
@@ -741,30 +715,30 @@ There are three possibilities for the result of `FormData`:
 - If the outer constructor is `Right`, but the inner constructor is `Nothing`, then `getItem` also returned `Nothing` which means that the key did not exist in local storage. In this case, the application continues quietly.
 - Finally, a value matching the pattern `Right (Just _)` indicates a successfully parsed JSON document. In this case, the application updates the form fields with the appropriate values.
 
-Try out the code, by running `pulp build -O --to dist/Main.js`, and then opening the browser to `html/index.html`. You should be able to save the form fields' contents to local storage by clicking the Save button, and then see the fields repopulated when the page is refreshed.
+Try out the code, by running `spago bundle-app --to dist/Main.js`, and then opening the browser to `html/index.html`. You should be able to see what's going on in the console.
 
-_Note_: You may need to serve the HTML and Javascript files from a HTTP server locally in order to avoid certain browser-specific issues.
+_Note_: You may need to serve the HTML and JavaScript files from a HTTP server locally in order to avoid certain browser-specific issues.
 
-X> ## Exercises
-X>
-X> 1. (Easy) Use `decodeJSON` to parse a JSON document representing a two-dimensional JavaScript array of integers, such as `[[1, 2, 3], [4, 5], [6]]`. What if the elements are allowed to be null? What if the arrays themselves are allowed to be null?
-X> 1. (Medium) Convince yourself that the implementation of `savedData` should type-check, and write down the inferred types of each subexpression in the computation.
-X> 1. (Medium) The following data type represents a binary tree with values at the leaves:
-X>
-X>     ```haskell
-X>     data Tree a = Leaf a | Branch (Tree a) (Tree a)
-X>     ```
-X>
-X>     Derive `Encode` and `Decode` instances for this type using `purescript-foreign-generic`, and verify that encoded values can correctly be decoded in PSCi.
-X> 1. (Difficult) The following `data` type should be represented directly in JSON as either an integer or a string:
-X>
-X>     ```haskell
-X>     data IntOrString
-X>       = IntOrString_Int Int
-X>       | IntOrString_String String
-X>     ```
-X>
-X>     Write instances for `Encode` and `Decode` for the `IntOrString` data type which implement this behavior, and verify that encoded values can correctly be decoded in PSCi.
+ ## Exercises
+
+ 1. (Easy) Use `decodeJSON` to parse a JSON document representing a two-dimensional JavaScript array of integers, such as `[[1, 2, 3], [4, 5], [6]]`. What if the elements are allowed to be null? What if the arrays themselves are allowed to be null?
+ 1. (Medium) Convince yourself that the implementation of `savedData` should type-check, and write down the inferred types of each subexpression in the computation.
+ 1. (Medium) The following data type represents a binary tree with values at the leaves:
+
+     ```haskell
+     data Tree a = Leaf a | Branch (Tree a) (Tree a)
+     ```
+
+     Derive `Encode` and `Decode` instances for this type using `foreign-generic`, and verify that encoded values can correctly be decoded in PSCi. Hint: This requires a [Generic Instance](https://github.com/paf31/24-days-of-purescript-2016/blob/master/11.markdown#deriving-generic-instances), also see previous section on "Instance Dependencies", and finally, search the web for "eta-expansion" if you encounter recursion issues during testing.
+ 1. (Difficult) The following `data` type should be represented directly in JSON as either an integer or a string:
+
+     ```haskell
+     data IntOrString
+       = IntOrString_Int Int
+       | IntOrString_String String
+     ```
+
+     Write instances for `Encode` and `Decode` for the `IntOrString` data type which implement this behavior, and verify that encoded values can correctly be decoded in PSCi.
 
 ## Conclusion
 
@@ -772,7 +746,7 @@ In this chapter, we've learned how to work with foreign JavaScript code from Pur
 
 - We've seen the importance of the _runtime representation_ of data, and ensuring that foreign functions have the correct representation.
 - We learned how to deal with corner cases like null values and other types of JavaScript data, by using foreign types, or the `Foreign` data type.
-- We looked at some common foreign types defined in the Prelude, and how they can be used to interoperate with idiomatic JavaScript code. In particular, the representation of side-effects in the `Eff` monad was introduced, and we saw how to use the `Eff` monad to capture new side effects.
+- We looked at some common foreign types defined in the Prelude, and how they can be used to interoperate with idiomatic JavaScript code. In particular, the representation of side-effects in the `Effect` monad was introduced, and we saw how to use the `Effect` monad to capture new side effects.
 - We saw how to safely deserialize JSON data using the `Decode` type class.
 
 For more examples, the `purescript`, `purescript-contrib` and `purescript-node` GitHub organizations provide plenty of examples of libraries which use the FFI. In the remaining chapters, we will see some of these libraries put to use to solve real-world problems in a type-safe way.

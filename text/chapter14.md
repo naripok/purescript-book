@@ -8,7 +8,7 @@ A domain-specific language is a language which is well-suited to development in 
 
 - The `Game` monad and its associated actions, developed in chapter 11, constitute a domain-specific language for the domain of _text adventure game development_.
 - The library of combinators which we wrote for the `Async` and `Parallel` functors in chapter 12 could be considered an example of a domain-specific language for the domain of _asynchronous programming_.
-- The `purescript-quickcheck` package, covered in chapter 13, is a domain-specific language for the domain of _generative testing_. Its combinators enable a particularly expressive notation for test properties.
+- The `quickcheck` package, covered in chapter 13, is a domain-specific language for the domain of _generative testing_. Its combinators enable a particularly expressive notation for test properties.
 
 This chapter will take a more structured approach to some of standard techniques in the implementation of domain-specific languages. It is by no means a complete exposition of the subject, but should provide you with enough knowledge to build some practical DSLs for your own tasks.
 
@@ -16,7 +16,7 @@ Our running example will be a domain-specific language for creating HTML documen
 
 ## Project Setup
 
-The project accompanying this chapter adds one new Bower dependency - the `purescript-free` library, which defines the _free monad_, one of the tools which we will be using.
+The project accompanying this chapter adds one new dependency - the `free` library, which defines the _free monad_, one of the tools which we will be using.
 
 We will test this chapter's project in PSCi.
 
@@ -52,7 +52,7 @@ render :: Element -> String
 which renders HTML elements as HTML strings. We can try out this version of the library by constructing values of the appropriate types explicitly in PSCi:
 
 ```text
-$ pulp repl
+$ spago repl
 
 > import Prelude
 > import Data.DOM.Simple
@@ -234,7 +234,7 @@ module Data.DOM.Smart
 If we try this new module in PSCi, we can already see massive improvements in the conciseness of the user code:
 
 ```text
-$ pulp repl
+$ spago repl
 
 > import Prelude
 > import Data.DOM.Smart
@@ -247,16 +247,16 @@ unit
 
 Note, however, that no changes had to be made to the `render` function, because the underlying data representation never changed. This is one of the benefits of the smart constructors approach - it allows us to separate the internal data representation for a module from the representation which is perceived by users of its external API.
 
-X> ## Exercises
-X>
-X> 1. (Easy) Use the `Data.DOM.Smart` module to experiment by creating new HTML documents using `render`.
-X> 1. (Medium) Some HTML attributes such as `checked` and `disabled` do not require values, and may be rendered as _empty attributes_:
-X>
-X>     ```html
-X>     <input disabled>
-X>     ```
-X>
-X>     Modify the representation of an `Attribute` to take empty attributes into account. Write a function which can be used in place of `attribute` or `:=` to add an empty attribute to an element.
+ ## Exercises
+
+ 1. (Easy) Use the `Data.DOM.Smart` module to experiment by creating new HTML documents using `render`.
+ 1. (Medium) Some HTML attributes such as `checked` and `disabled` do not require values, and may be rendered as _empty attributes_:
+
+     ```html
+     <input disabled>
+     ```
+
+     Modify the representation of an `Attribute` to take empty attributes into account. Write a function which can be used in place of `attribute` or `:=` to add an empty attribute to an element.
 
 ## Phantom Types
 
@@ -350,17 +350,17 @@ Now we find it is impossible to represent these invalid HTML documents, and we a
 unit
 ```
 
-X> ## Exercises
-X>
-X> 1. (Easy) Create a data type which represents either pixel or percentage lengths. Write an instance of `IsValue` for your type. Modify the `width` and `height` attributes to use your new type.
-X> 1. (Difficult) By defining type-level representatives for the Boolean values `true` and `false`, we can use a phantom type to encode whether an `AttributeKey` represents an _empty attribute_ such as `disabled` or `checked`.
-X>
-X>     ```haskell
-X>     data True
-X>     data False
-X>     ```
-X>
-X>     Modify your solution to the previous exercise to use a phantom type to prevent the user from using the `attribute` operator with an empty attribute.
+ ## Exercises
+
+ 1. (Easy) Create a data type which represents either pixel or percentage lengths. Write an instance of `IsValue` for your type. Modify the `width` and `height` attributes to use your new type.
+ 1. (Difficult) By defining type-level representatives for the Boolean values `true` and `false`, we can use a phantom type to encode whether an `AttributeKey` represents an _empty attribute_ such as `disabled` or `checked`.
+
+     ```haskell
+     data True
+     data False
+     ```
+
+     Modify your solution to the previous exercise to use a phantom type to prevent the user from using the `attribute` operator with an empty attribute.
 
 ## The Free Monad
 
@@ -391,7 +391,7 @@ p [ _class := "main" ] $ do
 
 However, do notation is not the only benefit of a free monad. The free monad allows us to separate the _representation_ of our monadic actions from their _interpretation_, and even support _multiple interpretations_ of the same actions.
 
-The `Free` monad is defined in the `purescript-free` library, in the `Control.Monad.Free` module. We can find out some basic information about it using PSCi, as follows:
+The `Free` monad is defined in the `free` library, in the `Control.Monad.Free` module. We can find out some basic information about it using PSCi, as follows:
 
 ```text
 > import Control.Monad.Free
@@ -567,9 +567,9 @@ That's it! We can test our new monadic API in PSCi, as follows:
 unit
 ```
 
-X> ## Exercises
-X>
-X> 1. (Medium) Add a new data constructor to the `ContentF` type to support a new action `comment`, which renders a comment in the generated HTML. Implement the new action using `liftF`. Update the interpretation `renderContentItem` to interpret your new constructor appropriately.
+ ## Exercises
+
+ 1. (Medium) Add a new data constructor to the `ContentF` type to support a new action `comment`, which renders a comment in the generated HTML. Implement the new action using `liftF`. Update the interpretation `renderContentItem` to interpret your new constructor appropriately.
 
 ## Extending the Language
 
@@ -702,23 +702,23 @@ unit
 
 You can verify that multiple calls to `newName` do in fact result in unique names.
 
-X> ## Exercises
-X>
-X> 1. (Medium) We can simplify the API further by hiding the `Element` type from its users. Make these changes in the following steps:
-X>     
-X>     - Combine functions like `p` and `img` (with return type `Element`) with the `elem` action to create new actions with return type `Content Unit`.
-X>     - Change the `render` function to accept an argument of type `Content Unit` instead of `Element`.
-X> 1. (Medium) Hide the implementation of the `Content` monad by using a `newtype` instead of a type synonym. You should not export the data
-X>     constructor for your `newtype`.
-X> 1. (Difficult) Modify the `ContentF` type to support a new action
-X>
-X>     ```haskell
-X>     isMobile :: Content Boolean
-X>     ```
-X>
-X>     which returns a boolean value indicating whether or not the document is being rendered for display on a mobile device.
-X>
-X>     _Hint_: use the `ask` action and the `ReaderT` monad transformer to interpret this action. Alternatively, you might prefer to use the `RWS` monad.
+ ## Exercises
+
+ 1. (Medium) We can simplify the API further by hiding the `Element` type from its users. Make these changes in the following steps:
+     
+     - Combine functions like `p` and `img` (with return type `Element`) with the `elem` action to create new actions with return type `Content Unit`.
+     - Change the `render` function to accept an argument of type `Content Unit` instead of `Element`.
+ 1. (Medium) Hide the implementation of the `Content` monad by using a `newtype` instead of a type synonym. You should not export the data
+     constructor for your `newtype`.
+ 1. (Difficult) Modify the `ContentF` type to support a new action
+
+     ```haskell
+     isMobile :: Content Boolean
+     ```
+
+     which returns a boolean value indicating whether or not the document is being rendered for display on a mobile device.
+
+     _Hint_: use the `ask` action and the `ReaderT` monad transformer to interpret this action. Alternatively, you might prefer to use the `RWS` monad.
 
 ## Conclusion
 
