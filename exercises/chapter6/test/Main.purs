@@ -2,11 +2,11 @@ module Test.Main where
 
 import Prelude
 
-import Control.Monad.Eff (Eff)
-import Control.Monad.Eff.Console (CONSOLE, logShow)
-import Data.Hashable (hash, hashEqual)
+import Effect (Effect)
+import Effect.Console (logShow)
+import Data.UnorderedCollections.Hashable (hash, hashEqual)
 
-main :: Eff (console :: CONSOLE) Unit
+main :: Effect Unit
 main = do
   logShow (hash 123)
   logShow (hash true)
