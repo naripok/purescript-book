@@ -3,6 +3,7 @@ module Data.Guards where
 import Prelude
 import Data.Foldable (foldl)
 import Data.Array ((..))
+import Effect.Class.Console (log)
 
 {-- factorial :: Int -> Int --}
 {-- factorial 0 = 1 --}

@@ -4,7 +4,7 @@ import Prelude
 
 import Effect (Effect)
 import Effect.Class.Console (logShow)
-import Data.Hashable (hash, hashEqual)
+import Data.UnorderedCollections.Hashable (hash, hashEqual)
 
 main :: Effect Unit
 main = do
